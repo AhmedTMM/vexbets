@@ -1,5 +1,6 @@
 import type { Resolution } from "@vexbets/contract";
 import {
+  bigint,
   bigserial,
   boolean,
   index,
@@ -7,6 +8,7 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  real,
   text,
   timestamp,
   uniqueIndex,
@@ -140,4 +142,44 @@ export const positions = pgTable(
     costBasis: integer("cost_basis").notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.outcomeId] }), index("positions_market_idx").on(t.marketId)],
+);
+
+export const listenSessions = pgTable(
+  "listen_sessions",
+  {
+    id: uuid("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    bandNumber: integer("band_number").notNull(),
+    subjectName: text("subject_name").notNull(),
+    startedAt: ts("started_at").notNull(),
+    endedAt: ts("ended_at"),
+    segmentCount: integer("segment_count").notNull().default(0),
+    headHash: text("head_hash").notNull(),
+  },
+  (t) => [index("listen_sessions_band_idx").on(t.bandNumber, t.startedAt)],
+);
+
+/** Stored exactly as received: the hash covers these values (see contract evidence.ts). */
+export const segments = pgTable(
+  "segments",
+  {
+    id: uuid("id").primaryKey(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => listenSessions.id),
+    seq: integer("seq").notNull(),
+    startMs: bigint("start_ms", { mode: "number" }).notNull(),
+    endMs: bigint("end_ms", { mode: "number" }).notNull(),
+    text: text("text").notNull(),
+    confidence: real("confidence").notNull(),
+    speaker: text("speaker"),
+    prevHash: text("prev_hash").notNull(),
+    hash: text("hash").notNull(),
+  },
+  (t) => [
+    uniqueIndex("segments_session_seq_idx").on(t.sessionId, t.seq),
+    index("segments_time_idx").on(t.startMs),
+  ],
 );

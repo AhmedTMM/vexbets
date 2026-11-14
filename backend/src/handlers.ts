@@ -1,4 +1,5 @@
 import type { Handlers } from "./http";
+import { appendSegments, endSession, startSession } from "./services/ingest";
 import { createMarket, getMarket, listMarkets } from "./services/markets";
 import { listPositions, listTrades, quote, trade } from "./services/trading";
 import { userForEmail } from "./services/users";
@@ -38,5 +39,24 @@ export const handlers: Handlers = {
 
   async listPositions({ deps, email }) {
     return listPositions(deps, await userForEmail(deps, email()));
+  },
+
+  async startSession({ deps, email, body }) {
+    return startSession(deps, await userForEmail(deps, email()), body);
+  },
+
+  async appendSegments({ deps, email, params, body }) {
+    email(); // any logged-in caller may feed a session (demo: no device tokens)
+    const { accepted, segmentCount, headHash } = await appendSegments(
+      deps,
+      params.sessionId ?? "",
+      body.segments,
+    );
+    return { accepted, segmentCount, headHash };
+  },
+
+  async endSession({ deps, email, params }) {
+    email();
+    return endSession(deps, params.sessionId ?? "");
   },
 };
