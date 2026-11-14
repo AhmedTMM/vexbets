@@ -43,6 +43,8 @@ describe("speech-to-text token", () => {
     const t = await deepgramTokens("server-key", 300, fake).mint();
     expect(t.token).toBe("short");
     expect(seen[0]?.url).toBe("https://api.deepgram.com/v1/auth/grant");
-    expect((seen[0]?.init.headers as Record<string, string>).authorization).toBe("Token server-key");
+    expect((seen[0]?.init.headers as Record<string, string> | undefined)?.authorization).toBe(
+      "Token server-key",
+    );
   });
 });
