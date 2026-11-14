@@ -10,6 +10,7 @@ import { useMe } from "@/lib/hooks";
 import { ListenerProvider } from "@/lib/listener";
 import { setEmail } from "@/lib/session";
 import { ListenBar } from "./ListenBar";
+import { LiveCaptions } from "./LiveCaptions";
 import { WinToaster } from "./WinToaster";
 
 /** The mark: the Vexo three-triangle logo, with a poker chip in the bottom corner. */
@@ -125,6 +126,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <ListenBar />
           {children}
         </main>
+        <LiveCaptions />
         <WinToaster meId={me.id} />
       </div>
     </ListenerProvider>

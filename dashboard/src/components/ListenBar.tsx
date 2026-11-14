@@ -2,7 +2,6 @@
 
 import { Button, Checkbox, Input, Modal, Switch } from "@heroui/react";
 import { useState } from "react";
-import { clock } from "@/lib/format";
 import { useListener } from "@/lib/listener";
 
 /**
@@ -15,10 +14,7 @@ export function ListenBar() {
   const l = useListener();
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [typing, setTyping] = useState(false);
-  const [typed, setTyped] = useState("");
   const listening = l.connected;
-  const last = l.lines.at(-1);
   const notifyOn = l.notifications === "granted";
 
   const start = async (close: () => void) => {
@@ -54,30 +50,10 @@ export function ListenBar() {
               </span>
             )}
           </div>
-          {(listening || last) && (
-            <p className="mt-0.5 truncate text-muted text-sm" aria-live="polite">
-              {l.interim ? (
-                <span>{l.interim}</span>
-              ) : last ? (
-                <>
-                  <span className="meta mr-1.5">{clock(last.at).slice(0, 5)}</span>
-                  <span className="text-ink">{last.text}</span>
-                </>
-              ) : (
-                <span>{l.status || "Nothing heard yet."}</span>
-              )}
-            </p>
-          )}
+          {/* What it hears shows as big captions at the bottom (LiveCaptions); here only
+              the status while connecting. */}
+          {l.status && !listening && <p className="mt-0.5 truncate text-muted text-sm">{l.status}</p>}
         </div>
-
-        <Button
-          size="sm"
-          variant="ghost"
-          className="hidden sm:inline-flex"
-          onPress={() => setTyping((t) => !t)}
-        >
-          {typing ? "Hide" : "Type a line"}
-        </Button>
 
         {listening ? (
           <Button size="sm" variant="danger-soft" onPress={() => void l.stop()}>
@@ -164,26 +140,6 @@ export function ListenBar() {
             />
           )}
         </div>
-      )}
-
-      {typing && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void l.say(typed);
-            setTyped("");
-          }}
-          className="mt-3"
-        >
-          <Input
-            autoFocus
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            placeholder="Type what was said and press Enter"
-            aria-label="Test without the band: type what was said and press Enter"
-            className="w-full max-w-md text-base sm:text-[13px]"
-          />
-        </form>
       )}
     </section>
   );

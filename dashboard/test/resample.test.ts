@@ -13,7 +13,8 @@ describe("resample", () => {
 
   it("keeps every real point, in time order", () => {
     for (const r of raw) expect(out).toContainEqual(r);
-    for (let i = 1; i < out.length; i++) expect((out[i] as PricePoint).t).toBeGreaterThan((out[i - 1] as PricePoint).t);
+    for (let i = 1; i < out.length; i++)
+      expect((out[i] as PricePoint).t).toBeGreaterThan((out[i - 1] as PricePoint).t);
   });
 
   it("carries the last trade's price forward, never inventing prices", () => {
