@@ -1,6 +1,16 @@
 "use client";
 
-import { Area, AreaChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { clock } from "@/lib/format";
 import type { PricePoint } from "@/lib/market";
 
@@ -8,7 +18,45 @@ const YES = "#00d394";
 const NO = "#ff4f6a";
 const AXIS = "#6b727a";
 
-/** YES price as a filled line (the "stock"), NO as a dashed line, in cents. */
+interface DotProps {
+  cx?: number;
+  cy?: number;
+  index?: number;
+}
+
+/**
+ * The end of a line, Kalshi style: a dot on the last point with the side and its price
+ * next to it. `nudge` moves the label up or down when YES and NO end close together.
+ */
+function renderEnd(
+  { cx, cy, index }: DotProps,
+  lastIndex: number,
+  color: string,
+  label: string,
+  nudge: number,
+) {
+  const key = `end-${label}-${index}`;
+  if (index !== lastIndex || cx === undefined || cy === undefined) return <g key={key} />;
+  return (
+    <g key={key}>
+      <circle cx={cx} cy={cy} r={8} fill={color} opacity={0.2} />
+      <circle cx={cx} cy={cy} r={4} fill={color} />
+      <text
+        x={cx + 12}
+        y={cy + nudge}
+        dy="0.35em"
+        fill={color}
+        fontFamily="var(--font-display)"
+        fontWeight={700}
+        fontSize={18}
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
+/** YES and NO prices over time as two lines, each labelled at its latest price, in cents. */
 export function PriceChart({
   points,
   height = 260,
@@ -19,15 +67,18 @@ export function PriceChart({
   height?: number | `${number}%`;
   timeFormat?: (t: number) => string;
 }) {
+  const last = points.length - 1;
+  const yes = Math.round(points[last]?.yes ?? 50);
+  const no = Math.round(points[last]?.no ?? 50);
+  // Keep the two end labels from overlapping when the prices are close.
+  const gap = Math.abs(yes - no);
+  const push = gap < 12 ? Math.ceil(((12 - gap) / 100) * height * 0.5) + 2 : 0;
+  const yesNudge = yes >= no ? -push : push;
+  const noNudge = yes >= no ? push : -push;
+
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
-        <defs>
-          <linearGradient id="yes-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={YES} stopOpacity={0.28} />
-            <stop offset="100%" stopColor={YES} stopOpacity={0} />
-          </linearGradient>
-        </defs>
+      <LineChart data={points} margin={{ top: 12, right: 92, bottom: 0, left: -18 }}>
         <CartesianGrid stroke="#2a2f35" strokeDasharray="2 4" vertical={false} />
         <XAxis
           dataKey="t"
@@ -63,24 +114,25 @@ export function PriceChart({
           labelFormatter={(v) => timeFormat(v as number)}
           formatter={(v, name) => [`${Math.round(v as number)}¢`, String(name).toUpperCase()]}
         />
-        <Area
-          type="stepAfter"
-          dataKey="yes"
-          stroke={YES}
-          strokeWidth={2.5}
-          fill="url(#yes-fill)"
-          isAnimationActive={false}
-        />
         <Line
           type="stepAfter"
           dataKey="no"
           stroke={NO}
-          strokeWidth={1.5}
-          strokeDasharray="4 3"
-          dot={false}
+          strokeWidth={2.5}
+          dot={(p: DotProps) => renderEnd(p, last, NO, `NO ${no}¢`, noNudge)}
+          activeDot={{ r: 4, fill: NO, stroke: "none" }}
           isAnimationActive={false}
         />
-      </AreaChart>
+        <Line
+          type="stepAfter"
+          dataKey="yes"
+          stroke={YES}
+          strokeWidth={2.5}
+          dot={(p: DotProps) => renderEnd(p, last, YES, `YES ${yes}¢`, yesNudge)}
+          activeDot={{ r: 4, fill: YES, stroke: "none" }}
+          isAnimationActive={false}
+        />
+      </LineChart>
     </ResponsiveContainer>
   );
 }
