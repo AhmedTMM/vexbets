@@ -1,16 +1,33 @@
 # backend
 
-Next.js (route handlers only) on Vercel, Postgres. Implements every endpoint in
-[`contract/src/api.ts`](../contract/src/api.ts). Not built yet.
+Next.js route handlers on Vercel, Postgres through Drizzle. Implements every endpoint in
+[`contract/src/api.ts`](../contract/src/api.ts) behind one router (`src/http.ts`).
 
-To do:
+## Run it
 
-- Route handlers for `/api/v1/*`, parsing bodies with the contract's schemas and
-  answering errors with `ContractError#toBody()`.
-- Trades in one Postgres transaction (`SELECT ... FOR UPDATE` on the market row), priced with
-  `lmsr.quoteTrade`, idempotent on `idempotencyKey`.
-- Segment ingest: check `seq`, compute `hashSegment(seg, headHash)`, store.
-- Judge job (Vercel Cron, plus after each ingest when `resolveEarly`): send the window's
-  transcript to Gemini with `z.toJSONSchema(JudgeOutput)` as the response schema, then
-  resolve and pay out.
-- Env: `DATABASE_URL`, `GEMINI_API_KEY`, `DEEPGRAM_API_KEY` (only to mint STT tokens).
+    npm install            # in the repo root
+    npm run dev -w backend # http://localhost:3001, data in backend/.pglite (no setup)
+    curl localhost:3001/api/health
+
+With no `DATABASE_URL`, the backend runs PGlite: a real Postgres engine inside Node, kept
+on disk in `backend/.pglite`. Delete that folder to start over.
+
+## Test it
+
+    npm test -w backend                                    # in-memory PGlite
+    TEST_DATABASE_URL=postgres://... npm test -w backend   # a real Postgres server
+
+Tests start the whole backend in-process (`test/harness.ts`) and call it through the
+contract's typed client, so they cover the same parsing, auth and errors as production.
+The clock is fake (`b.advance(ms)`).
+
+## Database
+
+    npm run db:generate -w backend   # after editing src/db/schema.ts: writes drizzle/*.sql
+    DATABASE_URL=... npm run db:migrate -w backend
+
+On Vercel, `vercel-build` applies migrations before `next build`.
+
+## Auth
+
+`Authorization: Bearer <email>`. No password, no security: it is a demo with play money.
