@@ -37,6 +37,18 @@ function Mark({ size = 44 }: { size?: number }) {
   );
 }
 
+/** VEXBETS set tight in the condensed display face, VEX in YES green. */
+function Wordmark({ size = 28 }: { size?: number }) {
+  return (
+    <span
+      className="display uppercase italic"
+      style={{ fontSize: size, fontWeight: 700, letterSpacing: "0.01em" }}
+    >
+      <span className="text-yes">Vex</span>bets
+    </span>
+  );
+}
+
 const PAGES = [
   { href: "/", label: "Dashboard" },
   { href: "/portfolio", label: "Portfolio" },
@@ -51,17 +63,15 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <ListenerProvider>
-      <div className="min-h-dvh min-[1100px]:grid min-[1100px]:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="border-line border-b bg-[#0b0c0e] min-[1100px]:sticky min-[1100px]:top-0 min-[1100px]:h-dvh min-[1100px]:border-r min-[1100px]:border-b-0">
-          <div className="scroll-y flex h-full flex-col gap-6 p-6">
-            <Link href="/" className="flex items-center gap-3 rounded-lg">
-              <Mark />
-              <span className="font-bold text-xl tracking-[0.04em]">
-                <span className="text-yes">VEX</span>BETS
-              </span>
+      <div className="min-h-dvh">
+        <header className="sticky top-0 z-30 border-line border-b bg-bg/90 backdrop-blur-md">
+          <div className="flex h-16 items-center gap-6 px-6">
+            <Link href="/" aria-label="Vexbets home" className="flex items-center gap-2.5 rounded-lg">
+              <Mark size={36} />
+              <Wordmark />
             </Link>
 
-            <nav className="flex gap-1 rounded-full border border-line bg-surface p-1" aria-label="Pages">
+            <nav className="flex gap-1" aria-label="Pages">
               {PAGES.map((p) => {
                 const active = p.href === "/" ? path === "/" : path.startsWith(p.href);
                 return (
@@ -69,7 +79,7 @@ export function Shell({ children }: { children: ReactNode }) {
                     key={p.href}
                     href={p.href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex h-9 flex-1 items-center justify-center rounded-full text-sm transition-colors duration-150 ${active ? "bg-raised font-bold text-ink" : "font-medium text-muted hover:text-ink"}`}
+                    className={`flex h-9 items-center rounded-full px-4 text-[15px] transition-colors duration-150 ${active ? "bg-raised font-semibold text-ink" : "text-muted hover:text-ink"}`}
                   >
                     {p.label}
                   </Link>
@@ -77,47 +87,34 @@ export function Shell({ children }: { children: ReactNode }) {
               })}
             </nav>
 
-            <div className="panel space-y-3 p-4">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-sm">@{me.handle}</span>
-                <button
-                  type="button"
-                  onClick={() => setEmail(null)}
-                  className="rounded-md px-1.5 text-muted text-sm transition-colors duration-150 hover:text-ink"
+            <div className="ml-auto flex items-center gap-4">
+              {API_MODE === "mock" && (
+                <span
+                  title="Running on the in-browser stand-in backend"
+                  className="meta rounded-full border border-mock/30 bg-mock/10 px-2.5 py-0.5 text-mock"
                 >
-                  Switch
-                </button>
-              </div>
-              <div>
-                <div className="label">Balance</div>
-                <div className="num font-semibold text-2xl tracking-tight">{credits(me.balance)}</div>
-              </div>
+                  mock backend
+                </span>
+              )}
+              <span className="text-muted text-sm">@{me.handle}</span>
+              <Link
+                href="/portfolio"
+                title="Your portfolio"
+                className="display rounded-lg border border-yes/25 bg-yes/10 px-3 py-1.5 text-[22px] text-yes transition-colors duration-150 hover:bg-yes/20"
+              >
+                {credits(me.balance)}
+              </Link>
+              <button
+                type="button"
+                onClick={() => setEmail(null)}
+                className="btn btn-ghost h-9 px-3 text-[13px]"
+              >
+                Switch
+              </button>
             </div>
           </div>
-        </aside>
-
-        <div className="min-w-0">
-          <main className="mx-auto max-w-[1500px] space-y-6 p-6 min-[1100px]:p-10">
-            <header className="panel flex flex-wrap items-center justify-between gap-4 px-6 py-5">
-              <div>
-                <h1 className="font-bold text-3xl tracking-[0.02em]">VEXBETS</h1>
-                <p className="meta mt-1">
-                  prediction markets on what your friends say · settled by a Vexo band
-                </p>
-              </div>
-              <span
-                className={`num inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] ${API_MODE === "mock" ? "border-mock/30 bg-mock/10 text-mock" : "border-line bg-surface text-ink"}`}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`h-2 w-2 rounded-full ${API_MODE === "mock" ? "bg-mock" : "bg-yes"}`}
-                />
-                {API_MODE === "mock" ? "mock backend · in this browser" : "backend connected"}
-              </span>
-            </header>
-            {children}
-          </main>
-        </div>
+        </header>
+        <main className="mx-auto max-w-[1720px] p-6">{children}</main>
         <WinToaster meId={me.id} />
       </div>
     </ListenerProvider>
@@ -140,7 +137,7 @@ function SignIn({ problem }: { problem?: string }) {
       >
         <div className="flex items-center gap-3">
           <Mark />
-          <span className="font-bold text-2xl tracking-[0.04em]">VEXBETS</span>
+          <Wordmark size={34} />
         </div>
         <p className="text-muted text-sm leading-relaxed">
           Trade YES and NO shares on what your friends will say. A Vexo band listens and settles the market.

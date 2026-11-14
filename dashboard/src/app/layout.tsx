@@ -1,11 +1,23 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Barlow_Condensed, JetBrains_Mono, Schibsted_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
 import { Shell } from "@/components/Shell";
 import "./globals.css";
 
-const sans = Geist({ variable: "--font-sans", subsets: ["latin"] });
-const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+/** Interface text: a crisp grotesk with some character. */
+const sans = Schibsted_Grotesk({
+  variable: "--font-ui",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+/** Big numbers and the wordmark: tall condensed figures, like a trading terminal. */
+const display = Barlow_Condensed({
+  variable: "--font-numbers",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+/** Small details: band numbers, times, statuses. */
+const mono = JetBrains_Mono({ variable: "--font-code", subsets: ["latin"], weight: ["400", "500"] });
 
 export const metadata: Metadata = {
   title: "Vexbets",
@@ -15,7 +27,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${sans.variable} ${mono.variable} antialiased`}>
+      <body className={`${sans.variable} ${display.variable} ${mono.variable} antialiased`}>
         <Shell>{children}</Shell>
       </body>
     </html>

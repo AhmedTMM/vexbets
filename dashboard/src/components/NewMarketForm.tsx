@@ -79,7 +79,7 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid gap-3">
         <label className="block">
           <span className="label mb-1.5 block">Who's it about</span>
           <select
@@ -109,8 +109,8 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
         </label>
       </div>
 
-      <div className="flex flex-wrap items-end gap-4">
-        <fieldset className="min-w-[280px] flex-1">
+      <div className="space-y-3">
+        <fieldset>
           <legend className="label mb-1.5">Closes in</legend>
           <div className="seg">
             {DURATIONS.map((d) => (
@@ -127,7 +127,7 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
             ))}
           </div>
         </fieldset>
-        <button type="submit" disabled={busy} className="btn btn-primary h-11 min-w-44 px-6">
+        <button type="submit" disabled={busy} className="btn btn-primary h-11 w-full">
           {busy ? "Opening…" : "Open market"}
         </button>
       </div>
