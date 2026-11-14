@@ -28,6 +28,14 @@
       #log { font: 12px/1.5 ui-monospace, monospace; color: var(--muted); max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
       .pill { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 12px; border: 1px solid var(--line); }
       .pill.on { color: var(--ok); border-color: var(--ok); }
+      .market { padding: 10px 0; border-bottom: 1px solid var(--line); }
+      .market:last-child { border-bottom: 0; }
+      .market .q { font-weight: 600; }
+      .market .meta { font-size: 13px; color: var(--muted); }
+      .market .bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin: 6px 0; background: var(--line); }
+      .market .bar span { background: var(--accent); }
+      .market .proof { font-size: 13px; margin-top: 4px; }
+      .market .proof q { font-style: italic; }
       .warn { font-size: 13px; color: var(--muted); margin-top: 8px; }
     </style>
   </head>
@@ -65,7 +73,12 @@
       </form>
 
       <div class="card">
-        <strong>Heard</strong> <span id="state" class="pill">off</span> <span id="sent" class="pill">0 sent</span>
+        <strong>Listening for</strong> <span class="pill" id="markets-note">markets on your band</span>
+        <div id="markets"></div>
+      </div>
+
+      <div class="card">
+        <strong>Heard</strong> <span id="state" class="pill">off</span> <span id="sent" class="pill">0 sent</span> <span id="level" class="pill">mic –</span>
         <div id="transcript"></div>
       </div>
 

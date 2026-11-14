@@ -1,6 +1,6 @@
 import type { FinalTranscript, SttEngine } from "@vexbets/contract";
 import type { AudioSource } from "./band-source";
-import { createSegmenter, type SegmentEvent } from "./segmenter";
+import { createSegmenter, rmsDb, type SegmentEvent } from "./segmenter";
 
 /**
  * Live speech-to-text with OpenAI Realtime transcription (gpt-live-transcribe), over a
@@ -18,8 +18,14 @@ import { createSegmenter, type SegmentEvent } from "./segmenter";
 
 export const REALTIME_URL = "wss://api.openai.com/v1/realtime?intent=transcription";
 const APPEND_EVERY_SAMPLES = 2_400; // 100 ms at 24 kHz
-/** Clear the buffered silence this often while nobody talks, so commits stay small. */
-const CLEAR_QUIET_MS = 5_000;
+/**
+ * While the segmenter hears no clear speech, look at the buffer this often: if anything in
+ * it was above the room's noise at all, commit it anyway (quiet speech is still speech);
+ * if it was all silence, clear it.
+ */
+const SWEEP_MS = 8_000;
+/** "Some sound" for the sweep: this far above the noise floor (dB). */
+const SOME_SOUND_DB = 4;
 
 export interface OpenAISttOptions {
   token: string;
@@ -27,6 +33,8 @@ export interface OpenAISttOptions {
   /** Partial text while someone is still talking. */
   onLive?: (text: string) => void;
   onLog?: (msg: string) => void;
+  /** Loudness of what the band hears, about 5 times a second (dB), and the room's floor. */
+  onLevel?: (db: number, floorDb: number) => void;
   /** For tests. */
   WebSocketImpl?: typeof WebSocket;
 }
@@ -116,6 +124,8 @@ export function openaiRealtimeStt(opts: OpenAISttOptions): SttEngine {
   let pendingSamples = 0;
   let appendedSinceReset = false;
   let lastResetMs = Date.now();
+  let loudestSinceReset = -120;
+  let lastLevelMs = 0;
   let emit: (t: FinalTranscript) => void = () => {};
 
   const send = (msg: object) => {
@@ -136,33 +146,45 @@ export function openaiRealtimeStt(opts: OpenAISttOptions): SttEngine {
     appendedSinceReset = true;
   }
 
+  function commit(startMs: number, endMs: number, nowMs: number, why: string) {
+    flushAudio();
+    turns.sent(startMs, endMs);
+    send({ type: "input_audio_buffer.commit" });
+    log(`line ended (${why}), asking for its text`);
+    appendedSinceReset = false;
+    loudestSinceReset = -120;
+    lastResetMs = nowMs;
+  }
+
+  function clear(nowMs: number) {
+    flushAudio();
+    send({ type: "input_audio_buffer.clear" });
+    appendedSinceReset = false;
+    loudestSinceReset = -120;
+    lastResetMs = nowMs;
+  }
+
   function handle(ev: SegmentEvent, nowMs: number) {
-    if (ev.type === "speech-end") {
-      flushAudio();
-      turns.sent(ev.startMs, ev.endMs);
-      send({ type: "input_audio_buffer.commit" });
-      appendedSinceReset = false;
-      lastResetMs = nowMs;
-    } else if (ev.type === "discard") {
-      flushAudio();
-      send({ type: "input_audio_buffer.clear" });
-      appendedSinceReset = false;
-      lastResetMs = nowMs;
-    }
+    if (ev.type === "speech-end") commit(ev.startMs, ev.endMs, nowMs, ev.reason);
+    // A short bump is not cleared: it may be the start of quiet speech; the sweep decides.
   }
 
   function onSamples(samples: Float32Array) {
     const now = Date.now();
+    const db = rmsDb(samples);
     const events = segmenter.push(samples, 24_000, now);
+    loudestSinceReset = Math.max(loudestSinceReset, db - segmenter.floorDb);
+    if (now - lastLevelMs > 200) {
+      lastLevelMs = now;
+      opts.onLevel?.(db, segmenter.floorDb);
+    }
     pending.push(samples);
     pendingSamples += samples.length;
     if (pendingSamples >= APPEND_EVERY_SAMPLES) flushAudio();
     for (const ev of events) handle(ev, now);
-    if (!segmenter.speaking && appendedSinceReset && now - lastResetMs > CLEAR_QUIET_MS) {
-      flushAudio();
-      send({ type: "input_audio_buffer.clear" });
-      appendedSinceReset = false;
-      lastResetMs = now;
+    if (!segmenter.speaking && appendedSinceReset && now - lastResetMs > SWEEP_MS) {
+      if (loudestSinceReset >= SOME_SOUND_DB) commit(lastResetMs, now, now, "quiet speech");
+      else clear(now);
     }
   }
 

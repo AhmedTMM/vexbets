@@ -1,4 +1,11 @@
-import { createClient, createListener, type SttEngine, type SttToken, scriptedStt } from "@vexbets/contract";
+import {
+  createClient,
+  createListener,
+  type Market,
+  type SttEngine,
+  type SttToken,
+  scriptedStt,
+} from "@vexbets/contract";
 import { type BandConnection, connectBand, samplePackets } from "./band-source";
 import { openaiRealtimeStt } from "./openai-stt";
 
@@ -10,6 +17,7 @@ const transcriptEl = $("transcript");
 const logEl = $("log");
 const stateEl = $("state");
 const sentEl = $("sent");
+const levelEl = $("level");
 
 // Remember the form between visits (per browser only; nothing secret is stored).
 const fields = ["band", "email", "subject", "backend"] as const;
@@ -61,6 +69,72 @@ function showFinal(text: string) {
   transcriptEl.scrollTop = transcriptEl.scrollHeight;
 }
 
+// "Listening for": the open and recent markets on the band number in the form.
+const marketsEl = $("markets");
+const noteEl = $("markets-note");
+const pct = (bps: number) => `${Math.round(bps / 100)}%`;
+
+function renderMarkets(markets: Market[]) {
+  marketsEl.replaceChildren(
+    ...markets.map((m) => {
+      const el = document.createElement("div");
+      el.className = "market";
+      const prices = m.outcomes.map((o) => `${o.label} ${pct(o.priceBps)}`).join(" · ");
+      const winner = m.outcomes.find((o) => o.id === m.resolution?.outcomeId);
+      const closes = new Date(m.closesAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const q = document.createElement("div");
+      q.className = "q";
+      q.textContent = m.question;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent =
+        m.status === "resolved"
+          ? `resolved: ${winner?.label ?? "?"} (${m.resolution?.via})`
+          : `${m.status} · ${prices} · closes ${closes} · ${m.criteria}`;
+      const bar = document.createElement("div");
+      bar.className = "bar";
+      const fill = document.createElement("span");
+      fill.style.width = pct(m.outcomes[0]?.priceBps ?? 0);
+      bar.append(fill);
+      el.append(q, meta, bar);
+      const ev = m.resolution?.decision.evidence[0];
+      if (m.resolution) {
+        const proof = document.createElement("div");
+        proof.className = "proof";
+        proof.textContent = `${m.resolution.decision.rationale}${ev ? " Heard: " : ""}`;
+        if (ev) {
+          const quote = document.createElement("q");
+          quote.textContent = ev.quote;
+          proof.append(quote);
+        }
+        el.append(proof);
+      }
+      return el;
+    }),
+  );
+  if (markets.length === 0) marketsEl.textContent = "No markets on this band yet.";
+}
+
+async function refreshMarkets() {
+  const band = Number($<HTMLInputElement>("band").value);
+  if (!band) {
+    noteEl.textContent = "enter your band number";
+    return;
+  }
+  const baseUrl = $<HTMLInputElement>("backend").value.trim().replace(/\/$/, "");
+  try {
+    const { markets } = await createClient({ baseUrl })("listMarkets", { query: { limit: 50 } });
+    const mine = markets.filter((m) => m.bandNumber === band);
+    noteEl.textContent = `band ${band} · ${mine.filter((m) => m.status === "open").length} open`;
+    renderMarkets(mine);
+  } catch (err) {
+    noteEl.textContent = `backend not reachable (${err instanceof Error ? err.message : String(err)})`;
+  }
+}
+void refreshMarkets();
+setInterval(() => void refreshMarkets(), 5_000);
+$<HTMLInputElement>("band").addEventListener("change", () => void refreshMarkets());
+
 let conn: BandConnection | null = null;
 let listener: ReturnType<typeof createListener> | null = null;
 
@@ -86,7 +160,15 @@ form.addEventListener("submit", async (e) => {
       stt: (token: SttToken): SttEngine => {
         log(`speech-to-text: ${token.provider}`);
         if (token.provider === "openai") {
-          return openaiRealtimeStt({ token: token.token, audio: band.audio, onLive: showLive, onLog: log });
+          return openaiRealtimeStt({
+            token: token.token,
+            audio: band.audio,
+            onLive: showLive,
+            onLog: log,
+            onLevel: (db, floor) => {
+              levelEl.textContent = `mic ${db.toFixed(0)} dB (room ${floor.toFixed(0)})`;
+            },
+          });
         }
         // The backend runs fake STT (no OpenAI key): play a scripted conversation.
         return scriptedStt([
