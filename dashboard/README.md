@@ -39,6 +39,11 @@ Opening a market for a friend starts listening to their band. Markets settle YES
 the band hears it and NO when they close. The listener (`src/lib/listener.tsx`) wraps every
 page, so it keeps running while you browse.
 
+Markets use the contract's default liquidity, b = 30. Like the backend, the creator puts up
+the market maker's worst-case loss (`maxSubsidy(30, 2)` = $20.80) when it opens; trades flow
+in and out of that escrow, winners are paid from it, and the creator gets the rest back.
+The portfolio counts the deposit as yours until the market settles.
+
 Trades: preview with `lmsr.quoteTrade`, then `quote` and `trade` with a 3% slippage limit
 and a fresh `idempotencyKey` (`src/lib/trade.ts`). There is no push channel, so pages poll
 every 1.5 to 3 s.
@@ -59,15 +64,15 @@ every 1.5 to 3 s.
 
 ## Needs from the backend / contract
 
-1. `sttToken` must return `provider: "deepgram"` and a token. The listener uses a token
-   containing a `.` (a short-lived JWT from Deepgram's grant API) as `bearer`, anything else
-   as an API key. Until then, the band strip asks for a key or takes typed lines.
+1. Speech-to-text: the dashboard's listener streams the band to Deepgram and uses
+   `sttToken` when it returns `provider: "deepgram"` (a token containing a `.` is sent as
+   `bearer`, anything else as an API key). The backend on `main` currently hands out OpenAI
+   client secrets (or `fake`), so against it the band strip asks for a Deepgram key or takes
+   typed lines, which go through `appendSegments` either way.
 2. No endpoint returns the live transcript, so other tabs see transcript lines only in the
    proof after resolution. Live lines show on the band strip of the tab connected to the band.
 3. The tagline and YES criteria should be written by the backend's reasoning model. The
    contract still requires both, so the dashboard sends the question for each for now.
-4. A market that resolves by fallback with no transcript at all has a `headHash` that
-   `verifyProof` can't find (GENESIS is not added to `heads`), so its proof check fails.
 
 ## Verification: property tests
 

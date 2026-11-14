@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import { cents, clock, credits, signedCredits } from "@/lib/format";
 import { useMe, usePoll } from "@/lib/hooks";
 import { sideOf, yesCents, yesNo } from "@/lib/market";
-import { type ValuePoint, valueSeries } from "@/lib/portfolio";
+import { deposit, type ValuePoint, valueSeries } from "@/lib/portfolio";
 import { SellButton } from "./SellButton";
 
 type Tab = "positions" | "history" | "fills";
@@ -29,15 +29,16 @@ export function PortfolioPanel() {
   const [tab, setTab] = useState<Tab>("positions");
   const { data } = usePoll(
     async () => {
-      const [{ positions }, { markets }] = await Promise.all([
+      const [{ positions }, { markets }, who] = await Promise.all([
         api("listPositions"),
         api("listMarkets", { query: { limit: 100 } }),
+        api("getMe"),
       ]);
+      // Trades in markets you traded in or opened (opened ones decide your creator refund).
       const traded = new Set(positions.map((p) => p.marketId));
+      const wanted = markets.filter((m) => traded.has(m.id) || m.creator.id === who.id);
       const lists = await Promise.all(
-        markets
-          .filter((m) => traded.has(m.id))
-          .map((m) => api("listTrades", { params: { marketId: m.id }, query: { limit: 100 } })),
+        wanted.map((m) => api("listTrades", { params: { marketId: m.id }, query: { limit: 100 } })),
       );
       return { positions, markets, trades: lists.flatMap((l) => l.trades) };
     },
@@ -78,8 +79,16 @@ export function PortfolioPanel() {
     })
     .sort((a, b) => b.at.localeCompare(a.at));
 
-  const total = me.balance + openValue;
-  const series = valueSeries(mine, data.markets, me.id, me.balance, total);
+  // Markets you opened: their deposit counts as yours until they settle.
+  const created = data.markets
+    .filter((m) => m.creator.id === me.id)
+    .map((m) => ({ market: m, trades: data.trades.filter((t) => t.marketId === m.id) }));
+  const inDeposits = created
+    .filter(({ market: m }) => m.status !== "resolved" && m.status !== "voided")
+    .reduce((a, { market: m }) => a + deposit(m), 0);
+
+  const total = me.balance + openValue + inDeposits;
+  const series = valueSeries(mine, data.markets, me.id, me.balance, total, Date.now(), created);
   const start = series[0]?.v ?? total;
   const change = total - start;
   const pct = start > 0 ? (change / start) * 100 : 0;
@@ -101,6 +110,7 @@ export function PortfolioPanel() {
         </div>
         <div className="meta mt-1">
           cash {credits(me.balance)} · in positions {credits(openValue)}
+          {inDeposits > 0 && ` · deposits in markets you opened ${credits(inDeposits)}`}
         </div>
         <div className="mt-6">
           <ValueChart points={series} up={change >= 0} />

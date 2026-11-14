@@ -67,7 +67,8 @@ describe("money is conserved through any trading session", () => {
     await fc.assert(
       fc.asyncProperty(
         fc.array(opArb, { minLength: 1, maxLength: 25 }),
-        fc.constantFrom(20, 100, 300),
+        // 30 is the contract default; 100 costs the creator $69.32 of their $100.
+        fc.constantFrom(10, 30, 100),
         fc.boolean(),
         async (ops, b, yesWins) => {
           mem.clear();
@@ -91,8 +92,10 @@ describe("money is conserved through any trading session", () => {
           const outcome = (s: 0 | 1) => m.outcomes[s]?.id as string;
           const params = { marketId: m.id };
 
-          // The model.
-          const bal = USERS.map(() => START);
+          // The model. The creator (user 0) puts up the market maker's worst-case loss.
+          const subsidy = lmsr.maxSubsidy(b, 2);
+          const bal = USERS.map((_, u) => (u === 0 ? START - subsidy : START));
+          expect((await owner("getMe")).balance).toBe(bal[0]);
           const held = USERS.map(() => [0, 0]);
           const basis = USERS.map(() => [0, 0]);
           let q = [0, 0];
@@ -172,9 +175,9 @@ describe("money is conserved through any trading session", () => {
           const live = await owner("getMarket", { params });
           expect(live.outcomes.map((o) => o.shares)).toEqual(q);
           expect(live.volumeCredits).toBeGreaterThanOrEqual(0);
-          // Conservation: what players lost is exactly what the house collected.
+          // Conservation: balances + the market's escrow (deposit + net trades) = all money handed out.
           const totalBal = bal.reduce((a, x) => a + x, 0);
-          expect(START * USERS.length - totalBal).toBe(collected);
+          expect(totalBal + subsidy + collected).toBe(START * USERS.length);
 
           // Settle: YES by the band hearing it, NO by the clock running out.
           if (yesWins) {
@@ -200,15 +203,40 @@ describe("money is conserved through any trading session", () => {
           expect(done.resolution?.outcomeId).toBe(outcome(w));
 
           let paid = 0;
-          for (const [u, c] of clients.entries()) {
-            const expectedPayout = (held[u]?.[w] ?? 0) * SHARE_PAYOUT;
+          for (const [u] of clients.entries()) {
             const got = done.resolution?.payouts.find((p) => p.userId === ids[u])?.credits ?? 0;
-            expect(got).toBe(expectedPayout);
-            expect((await c("getMe")).balance).toBe((bal[u] ?? 0) + expectedPayout);
+            expect(got).toBe((held[u]?.[w] ?? 0) * SHARE_PAYOUT);
             paid += got;
           }
           expect(paid).toBe((q[w] ?? 0) * SHARE_PAYOUT); // every winning share paid exactly $1
-          expect(paid - collected).toBeLessThanOrEqual(lmsr.maxSubsidy(b, 2)); // house risk bounded
+          // The creator gets back what is left in escrow; it never goes negative (bounded risk).
+          const refund = subsidy + collected - paid;
+          expect(refund).toBeGreaterThanOrEqual(0);
+          const finals: number[] = [];
+          for (const [u, c] of clients.entries()) {
+            const payout = (held[u]?.[w] ?? 0) * SHARE_PAYOUT;
+            const final = (await c("getMe")).balance;
+            expect(final).toBe((bal[u] ?? 0) + payout + (u === 0 ? refund : 0));
+            finals.push(final);
+          }
+          // After settlement nothing is held anywhere else: every credit is back with a player.
+          expect(finals.reduce((a, x) => a + x, 0)).toBe(START * USERS.length);
+
+          // The creator's portfolio graph starts at their starting balance and ends at today's.
+          const { trades: all } = await owner("listTrades", { params, query: { limit: 100 } });
+          const ownerFinal = finals[0] ?? 0;
+          const series = valueSeries(
+            all.filter((t) => t.user.id === ids[0]),
+            [done],
+            ids[0] as string,
+            ownerFinal,
+            ownerFinal,
+            Date.now() + 1000,
+            [{ market: done, trades: all }],
+          );
+          expect(series[0]?.v).toBe(START);
+          expect(series.at(-1)?.v).toBe(ownerFinal);
+          expect(series.at(-2)?.v).toBe(ownerFinal); // after settling, the graph equals cash
 
           if (yesWins) {
             const proof = await owner("getProof", { params });

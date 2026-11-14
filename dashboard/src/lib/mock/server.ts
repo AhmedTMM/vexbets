@@ -49,6 +49,8 @@ interface State {
   sessions: ListenSession[];
   segments: TranscriptSegment[];
   idempotency: Record<string, TradeResponse>;
+  /** Per market: creator deposit + buys − sells − payouts (like the backend). */
+  escrow: Record<string, number>;
 }
 
 const uuid = () => crypto.randomUUID();
@@ -57,11 +59,24 @@ const nowIso = () => new Date().toISOString();
 function load(): State {
   try {
     const raw = localStorage.getItem(STORE);
-    if (raw) return JSON.parse(raw) as State;
+    if (raw) {
+      const s = JSON.parse(raw) as State;
+      s.escrow ??= {}; // saved by an older version
+      return s;
+    }
   } catch {
     /* start fresh */
   }
-  return { users: [], markets: [], trades: [], positions: [], sessions: [], segments: [], idempotency: {} };
+  return {
+    users: [],
+    markets: [],
+    trades: [],
+    positions: [],
+    sessions: [],
+    segments: [],
+    idempotency: {},
+    escrow: {},
+  };
 }
 
 function save(s: State): void {
@@ -176,7 +191,15 @@ function resolve(s: State, m: Market, decision: Decision, outcomeId: string, via
     payouts.push({ userId: p.userId, shares: p.shares, credits });
     const u = s.users.find((x) => x.id === p.userId);
     if (u) u.balance += credits;
+    s.escrow[m.id] = (s.escrow[m.id] ?? 0) - credits;
   }
+  // Like the backend: winners are paid from the market's escrow and the creator gets the
+  // rest back (their deposit, plus or minus what the market maker made).
+  const left = s.escrow[m.id] ?? 0;
+  if (left < 0) throw new Error(`market ${m.id} escrow went negative (${left})`);
+  const creator = s.users.find((x) => x.id === m.creator.id);
+  if (creator) creator.balance += left;
+  s.escrow[m.id] = 0;
   m.status = "resolved";
   m.resolution = { marketId: m.id, outcomeId, via, decision, payouts, resolvedAt: nowIso() };
 }
@@ -277,6 +300,14 @@ const handlers: Partial<Record<EndpointName, (c: Ctx) => unknown | Promise<unkno
   createMarket({ s, email, body }) {
     const u = userFor(s, email());
     const r = CreateMarketRequest.parse(body);
+    // Like the backend: the creator deposits the market maker's worst-case loss.
+    const subsidy = lmsr.maxSubsidy(r.liquidityB, r.outcomes.length);
+    if (u.balance < subsidy) {
+      throw new ContractError(
+        "insufficient_balance",
+        `seeding this market costs ${subsidy} credits (its worst-case loss); you have ${u.balance}`,
+      );
+    }
     const ids = r.outcomes.map(() => uuid());
     const even = lmsr.pricesBps(
       r.outcomes.map(() => 0),
@@ -308,6 +339,8 @@ const handlers: Partial<Record<EndpointName, (c: Ctx) => unknown | Promise<unkno
       resolution: null,
     };
     s.markets.push(m);
+    u.balance -= subsidy;
+    s.escrow[m.id] = subsidy;
     return m;
   },
 
@@ -356,6 +389,7 @@ const handlers: Partial<Record<EndpointName, (c: Ctx) => unknown | Promise<unkno
     });
     void i;
     m.volumeCredits += q.credits;
+    s.escrow[m.id] = (s.escrow[m.id] ?? 0) + (r.side === "buy" ? q.credits : -q.credits);
     const trade: Trade = {
       id: uuid(),
       marketId: m.id,

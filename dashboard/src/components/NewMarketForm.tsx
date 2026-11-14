@@ -16,8 +16,13 @@ const DURATIONS = [
   { label: "2w", title: "2 weeks", minutes: 20160 },
 ];
 
-/** LMSR liquidity for every market: how far one trade moves the price. */
-const LIQUIDITY_B = 100;
+/**
+ * LMSR liquidity for every market: how far one trade moves the price. 30 is the contract's
+ * default; the backend charges the creator maxSubsidy(30, 2) = 2,080 credits ($20.80) as the
+ * market maker's deposit and returns what is left when the market settles.
+ */
+const LIQUIDITY_B = 30;
+const DEPOSIT = lmsr.maxSubsidy(LIQUIDITY_B, 2);
 
 const firstFriend = FRIENDS[0] as Friend;
 
@@ -134,7 +139,8 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
       )}
       <p className="meta">
         settles YES the moment {friend.name}'s band hears it · opening it starts recording {friend.name}'s
-        band, so make sure they agree · house backs it with up to {credits(lmsr.maxSubsidy(LIQUIDITY_B, 2))}
+        band, so make sure they agree · you put up {credits(DEPOSIT)} as the market maker and get back what's
+        left when it settles
       </p>
     </form>
   );
