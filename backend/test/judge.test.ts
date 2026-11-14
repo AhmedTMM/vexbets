@@ -50,7 +50,7 @@ describe("judge prompt", () => {
     const p = buildPrompt(input);
     expect(p).toContain("MODE: EARLY");
     expect(p).toContain("SUCCESS CRITERIA: Anyone near the band says 'no cap'.");
-    expect(p).toContain("- Yes: Someone says it");
+    expect(p).toContain('- "Yes" (counts when: Someone says it)');
     expect(p).toContain(
       "[22222222-2222-4222-8222-222222222222] 20:01:05 speaker 1: that crust is fire no cap",
     );
@@ -87,6 +87,7 @@ describe("OpenAI judge (offline)", () => {
     expect(req.reasoning).toEqual({ effort: "low" });
     expect(req.text.format).toMatchObject({ type: "json_schema", strict: true });
     expect(JSON.stringify(req.text.format)).not.toMatch(/minLength|maxLength/);
+    expect(JSON.stringify(req.text.format)).toContain('"enum":["UNDETERMINED","Yes","No"]');
     expect(req).not.toHaveProperty("temperature");
   });
 

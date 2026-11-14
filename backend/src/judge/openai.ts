@@ -6,16 +6,20 @@ import { buildPrompt, SYSTEM_PROMPT } from "./prompt";
 import type { Judge } from "./types";
 
 /**
- * The judge's response schema as sent to OpenAI. Same shape as the contract's JudgeOutput,
- * minus string length limits, which strict structured outputs may reject. The reply is then
- * trimmed and checked against the real JudgeOutput.
+ * The judge's response schema as sent to OpenAI, built per market: `verdict` is an enum of
+ * that market's exact outcome labels plus UNDETERMINED, so the model cannot answer
+ * "Yes: someone says it". Same shape as the contract's JudgeOutput, minus string length
+ * limits (strict structured outputs may reject them); the reply is then trimmed and checked
+ * against the real JudgeOutput.
  */
-const OpenAIJudgeOutput = z.object({
-  verdict: z.string(),
-  confidence: z.number().min(0).max(1),
-  rationale: z.string(),
-  evidence: z.array(z.object({ segmentId: z.string(), quote: z.string() })).max(10),
-});
+function responseSchema(labels: string[]) {
+  return z.object({
+    verdict: z.enum(["UNDETERMINED", ...labels]),
+    confidence: z.number().min(0).max(1),
+    rationale: z.string(),
+    evidence: z.array(z.object({ segmentId: z.string(), quote: z.string() })).max(10),
+  });
+}
 
 export type ReasoningEffort = "none" | "low" | "medium" | "high";
 
@@ -33,12 +37,13 @@ export function openaiJudge(opts: {
   return {
     model,
     async judge(input) {
+      const schema = responseSchema(input.market.outcomes.map((o) => o.label));
       const res = await client.responses.parse({
         model,
         reasoning: { effort },
         instructions: SYSTEM_PROMPT,
         input: buildPrompt(input),
-        text: { format: zodTextFormat(OpenAIJudgeOutput, "judge_output") },
+        text: { format: zodTextFormat(schema, "judge_output") },
       });
       const out = res.output_parsed;
       if (!out) throw new Error(`OpenAI judge returned no parsed output (status ${res.status})`);
