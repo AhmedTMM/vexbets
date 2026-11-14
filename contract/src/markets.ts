@@ -72,7 +72,8 @@ export const CreateMarketRequest = z
     /** Defaults to now. */
     opensAt: Timestamp.optional(),
     closesAt: Timestamp,
-    liquidityB: z.int().min(10).max(10_000).default(100),
+    /** LMSR b. 30 costs the creator 2,080 credits for a yes/no market; higher = steadier prices. */
+    liquidityB: z.int().min(10).max(10_000).default(30),
   })
   .superRefine((m, ctx) => {
     const labels = m.outcomes.map((o) => o.label.toLowerCase());

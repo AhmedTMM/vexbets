@@ -41,7 +41,7 @@ describe("markets", () => {
     expect(m.creator.handle).toBe("creator");
 
     const me = await call("getMe");
-    expect(me.balance).toBe(10_000 - lmsr.maxSubsidy(100, 2));
+    expect(me.balance).toBe(10_000 - lmsr.maxSubsidy(m.liquidityB, 2));
 
     expect(await call("getMarket", { params: { marketId: m.id } })).toEqual(m);
     const { markets } = await call("listMarkets", { query: { status: "open" } });

@@ -24,7 +24,7 @@ describe("CreateMarketRequest", () => {
   it("accepts a normal yes/no market and fills defaults", () => {
     const m = CreateMarketRequest.parse(base);
     expect(m.resolveEarly).toBe(true);
-    expect(m.liquidityB).toBe(100);
+    expect(m.liquidityB).toBe(30);
   });
 
   it("rejects duplicate labels, a bad fallback, a reserved label and a backwards window", () => {

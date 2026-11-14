@@ -36,7 +36,7 @@ describe("trading", () => {
       params: { marketId: market.id },
       body: { outcomeId: yes, side: "buy", shares: 10 },
     });
-    expect(q.credits).toBe(lmsr.quoteTrade([0, 0], 100, 0, "buy", 10).credits);
+    expect(q.credits).toBe(lmsr.quoteTrade([0, 0], market.liquidityB, 0, "buy", 10).credits);
     expect(q.priceBeforeBps).toEqual([5000, 5000]);
     expect(q.priceAfterBps[0]).toBeGreaterThan(5000);
   });
@@ -125,7 +125,7 @@ describe("trading", () => {
     const paid = results.reduce((s, r) => s + r.trade.credits, 0);
     const oneGo = lmsr.quoteTrade(
       before.outcomes.map((o) => o.shares),
-      100,
+      market.liquidityB,
       0,
       "buy",
       100,
