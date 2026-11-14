@@ -1,4 +1,16 @@
-import { bigserial, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import type { Resolution } from "@vexbets/contract";
+import {
+  bigserial,
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
@@ -32,4 +44,53 @@ export const ledger = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("ledger_user_idx").on(t.userId)],
+);
+
+const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
+
+export const markets = pgTable(
+  "markets",
+  {
+    id: uuid("id").primaryKey(),
+    creatorId: uuid("creator_id")
+      .notNull()
+      .references(() => users.id),
+    question: text("question").notNull(),
+    tagline: text("tagline").notNull(),
+    criteria: text("criteria").notNull(),
+    fallbackOutcomeId: uuid("fallback_outcome_id").notNull(),
+    resolveEarly: boolean("resolve_early").notNull(),
+    bandNumber: integer("band_number").notNull(),
+    subjectName: text("subject_name").notNull(),
+    opensAt: ts("opens_at").notNull(),
+    closesAt: ts("closes_at").notNull(),
+    liquidityB: integer("liquidity_b").notNull(),
+    status: text("status", { enum: ["open", "closed", "resolved", "voided"] }).notNull(),
+    volumeCredits: integer("volume_credits").notNull().default(0),
+    /** Credits the market holds: the creator's subsidy plus buys, minus sells and payouts. */
+    escrow: integer("escrow").notNull(),
+    lastJudgedAt: ts("last_judged_at"),
+    resolution: jsonb("resolution").$type<Resolution>(),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [
+    index("markets_status_idx").on(t.status, t.createdAt),
+    index("markets_band_idx").on(t.bandNumber, t.status),
+  ],
+);
+
+export const outcomes = pgTable(
+  "outcomes",
+  {
+    id: uuid("id").primaryKey(),
+    marketId: uuid("market_id")
+      .notNull()
+      .references(() => markets.id),
+    idx: integer("idx").notNull(),
+    label: text("label").notNull(),
+    criteria: text("criteria"),
+    /** Outstanding shares (q_i in the contract's lmsr.ts). */
+    shares: integer("shares").notNull().default(0),
+  },
+  (t) => [uniqueIndex("outcomes_market_idx").on(t.marketId, t.idx)],
 );

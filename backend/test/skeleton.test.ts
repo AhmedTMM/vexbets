@@ -22,7 +22,7 @@ describe("skeleton", () => {
   });
 
   it("answers contract endpoints that are not built yet with not_found", async () => {
-    await expect(b.as("a@b.co")("getMe")).rejects.toMatchObject({ code: "not_found", status: 404 });
+    await expect(b.as("a@b.co")("listPositions")).rejects.toMatchObject({ code: "not_found", status: 404 });
   });
 
   it("reads the caller's email from the bearer header", () => {
