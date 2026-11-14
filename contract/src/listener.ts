@@ -87,14 +87,19 @@ export function createListener(opts: ListenerOptions) {
   async function send(): Promise<void> {
     if (!sessionId || pending.length === 0) return;
     const batch = pending.slice(0, 50);
-    const segments = batch.map((t, i) => ({
-      seq: nextSeq + i,
-      startMs: t.startMs,
-      endMs: Math.max(t.endMs, t.startMs),
-      text: t.text,
-      confidence: t.confidence,
-      speaker: t.speaker,
-    }));
+    // The contract wants whole epoch ms and a confidence in 0..1: STT engines and audio
+    // chunk maths give fractions, so normalise here, once, for every engine.
+    const segments = batch.map((t, i) => {
+      const startMs = Math.max(0, Math.round(t.startMs));
+      return {
+        seq: nextSeq + i,
+        startMs,
+        endMs: Math.max(startMs, Math.round(t.endMs)),
+        text: t.text.slice(0, 5_000),
+        confidence: Math.min(1, Math.max(0, t.confidence)),
+        speaker: t.speaker,
+      };
+    });
     try {
       const r = await opts.client("appendSegments", { params: { sessionId }, body: { segments } });
       pending.splice(0, batch.length);

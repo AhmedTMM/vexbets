@@ -148,7 +148,7 @@ export function openaiRealtimeStt(opts: OpenAISttOptions): SttEngine {
 
   function commit(startMs: number, endMs: number, nowMs: number, why: string) {
     flushAudio();
-    turns.sent(startMs, endMs);
+    turns.sent(Math.round(startMs), Math.round(endMs));
     send({ type: "input_audio_buffer.commit" });
     log(`line ended (${why}), asking for its text`);
     appendedSinceReset = false;

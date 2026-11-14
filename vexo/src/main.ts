@@ -6,6 +6,7 @@ import {
   type SttToken,
   scriptedStt,
 } from "@vexbets/contract";
+import { createBandKeeper } from "./band-keeper";
 import { type BandConnection, connectBand, samplePackets } from "./band-source";
 import { openaiRealtimeStt } from "./openai-stt";
 
@@ -13,6 +14,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const form = $<HTMLFormElement>("form");
 const startBtn = $<HTMLButtonElement>("start");
 const stopBtn = $<HTMLButtonElement>("stop");
+const disconnectBtn = $<HTMLButtonElement>("disconnect");
 const transcriptEl = $("transcript");
 const logEl = $("log");
 const stateEl = $("state");
@@ -135,7 +137,12 @@ void refreshMarkets();
 setInterval(() => void refreshMarkets(), 5_000);
 $<HTMLInputElement>("band").addEventListener("change", () => void refreshMarkets());
 
-let conn: BandConnection | null = null;
+// Stop keeps the band connected, so Start again needs no chooser and no double-tap.
+const keeper = createBandKeeper<BandConnection>(async (key) => {
+  const [n, pretend] = key.split(":");
+  const voice = pretend === "pretend" ? await samplePackets() : undefined;
+  return connectBand({ number: Number(n), pretend: pretend === "pretend", voice, onStatus: log });
+});
 let listener: ReturnType<typeof createListener> | null = null;
 
 form.addEventListener("submit", async (e) => {
@@ -148,9 +155,9 @@ form.addEventListener("submit", async (e) => {
   const pretend = $<HTMLInputElement>("pretend").checked;
 
   try {
-    const voice = pretend ? await samplePackets() : undefined;
-    conn = await connectBand({ number, pretend, voice, onStatus: log });
-    const band = conn;
+    const { conn: band, fresh } = await keeper.acquire(`${number}:${pretend ? "pretend" : "real"}`);
+    if (!fresh) log(`still connected to ${band.name}`);
+    disconnectBtn.disabled = false;
 
     listener = createListener({
       client: createClient({ baseUrl, headers: () => ({ authorization: `Bearer ${email}` }) }),
@@ -190,25 +197,31 @@ form.addEventListener("submit", async (e) => {
     stopBtn.disabled = false;
   } catch (err) {
     log(`could not start: ${err instanceof Error ? err.message : String(err)}`);
-    await conn?.disconnect().catch(() => {});
-    conn = null;
     startBtn.disabled = false;
   }
 });
 
-stopBtn.addEventListener("click", async () => {
-  stopBtn.disabled = true;
+async function stopListening() {
   try {
     await listener?.stop();
-    await conn?.disconnect();
   } catch (err) {
     log(`stop: ${String(err)}`);
   }
   listener = null;
-  conn = null;
-  stateEl.textContent = "off";
+  stateEl.textContent = keeper.current ? "paused, band still connected" : "off";
   stateEl.classList.remove("on");
+  stopBtn.disabled = true;
   startBtn.disabled = false;
+}
+
+stopBtn.addEventListener("click", () => void stopListening());
+
+disconnectBtn.addEventListener("click", async () => {
+  disconnectBtn.disabled = true;
+  await stopListening();
+  await keeper.release();
+  stateEl.textContent = "off";
+  log("band disconnected");
 });
 
 window.addEventListener("beforeunload", () => {

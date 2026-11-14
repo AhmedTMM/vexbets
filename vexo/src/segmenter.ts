@@ -64,24 +64,24 @@ export function createSegmenter(opts: SegmenterOptions = {}) {
       const out: SegmentEvent[] = [];
       if (loud) {
         if (startMs === null) {
-          startMs = atMs - chunkMs;
+          startMs = Math.round(atMs - chunkMs);
           loudMs = 0;
           out.push({ type: "speech-start", atMs: startMs });
         }
-        lastLoudMs = atMs;
+        lastLoudMs = Math.round(atMs);
         loudMs += chunkMs;
       }
       if (startMs !== null) {
         const tooLong = atMs - startMs >= maxMs;
         const quiet = atMs - lastLoudMs >= silenceMs;
         if (tooLong || quiet) {
-          const endMs = tooLong ? atMs : lastLoudMs;
+          const endMs = Math.round(tooLong ? atMs : lastLoudMs);
           if (loudMs >= minSpeechMs) {
             out.push({ type: "speech-end", startMs, endMs, reason: tooLong ? "max-length" : "silence" });
           } else {
             out.push({ type: "discard", startMs, endMs });
           }
-          startMs = tooLong && loud ? atMs : null;
+          startMs = tooLong && loud ? Math.round(atMs) : null;
           loudMs = 0;
           if (startMs !== null) out.push({ type: "speech-start", atMs: startMs });
         }
