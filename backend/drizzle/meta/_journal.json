@@ -15,6 +15,13 @@
       "when": 1794685693250,
       "tag": "0001_markets",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794685809691,
+      "tag": "0002_trading",
+      "breakpoints": true
     }
   ]
 }

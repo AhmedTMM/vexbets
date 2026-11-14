@@ -1,7 +1,7 @@
-import { ContractError } from "@vexbets/contract";
+import { ContractError, createClient } from "@vexbets/contract";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { health } from "../src/health";
-import { emailFrom } from "../src/http";
+import { createApi, emailFrom } from "../src/http";
 import { type Backend, startBackend } from "./harness";
 
 let b: Backend;
@@ -22,7 +22,9 @@ describe("skeleton", () => {
   });
 
   it("answers contract endpoints that are not built yet with not_found", async () => {
-    await expect(b.as("a@b.co")("listPositions")).rejects.toMatchObject({ code: "not_found", status: 404 });
+    const empty = createApi(b.deps, {});
+    const call = createClient({ baseUrl: "http://backend.test", fetch: empty.fetch });
+    await expect(call("getMe")).rejects.toMatchObject({ code: "not_found", status: 404 });
   });
 
   it("reads the caller's email from the bearer header", () => {

@@ -1,5 +1,6 @@
 import type { Handlers } from "./http";
 import { createMarket, getMarket, listMarkets } from "./services/markets";
+import { listPositions, listTrades, quote, trade } from "./services/trading";
 import { userForEmail } from "./services/users";
 
 /** Contract endpoint name -> implementation. Endpoints not listed here answer "not implemented yet". */
@@ -20,5 +21,22 @@ export const handlers: Handlers = {
 
   async getMarket({ deps, params }) {
     return getMarket(deps, params.marketId ?? "");
+  },
+
+  async quote({ deps, params, body }) {
+    return quote(deps, params.marketId ?? "", body);
+  },
+
+  async trade({ deps, email, params, body }) {
+    const u = await userForEmail(deps, email());
+    return trade(deps, u, params.marketId ?? "", body);
+  },
+
+  async listTrades({ deps, params, query }) {
+    return listTrades(deps, params.marketId ?? "", query);
+  },
+
+  async listPositions({ deps, email }) {
+    return listPositions(deps, await userForEmail(deps, email()));
   },
 };
