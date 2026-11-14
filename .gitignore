@@ -10,3 +10,4 @@ coverage/
 .pglite/
 next-env.d.ts
 dist/
+.claude/worktrees/

@@ -72,7 +72,9 @@ export function PriceChart({
   const no = Math.round(points[last]?.no ?? 50);
   // Keep the two end labels from overlapping when the prices are close.
   const gap = Math.abs(yes - no);
-  const push = gap < 12 ? Math.ceil(((12 - gap) / 100) * height * 0.5) + 2 : 0;
+  // The nudge is in pixels; a "100%" chart is about as tall as the default one.
+  const px = typeof height === "number" ? height : 260;
+  const push = gap < 12 ? Math.ceil(((12 - gap) / 100) * px * 0.5) + 2 : 0;
   const yesNudge = yes >= no ? -push : push;
   const noNudge = yes >= no ? push : -push;
 
