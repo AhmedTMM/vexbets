@@ -56,34 +56,7 @@ export function priceHistory(m: Market, yn: YesNo, trades: Trade[], nowMs: numbe
       ? Date.parse(m.resolution.resolvedAt)
       : Math.min(nowMs, Date.parse(m.closesAt));
   pts.push(point(Math.max(last, end), yesCents(m, yn) * 100));
-  return resample(pts, 120);
-}
-
-/**
- * A price series on an even time grid: `n` samples from the first to the last point, each
- * carrying the price set by the latest trade at or before it, plus every real point, so a
- * jump lands exactly where the trade happened. A market with three trades still draws a
- * full, hoverable line.
- */
-export function resample(points: PricePoint[], n: number): PricePoint[] {
-  const first = points[0];
-  const lastPt = points.at(-1);
-  if (!first || !lastPt || points.length < 2 || lastPt.t <= first.t) return points;
-  const step = (lastPt.t - first.t) / (n - 1);
-  const out: PricePoint[] = [];
-  let i = 0;
-  for (let k = 0; k < n; k++) {
-    const t = first.t + k * step;
-    while (i + 1 < points.length && (points[i + 1] as PricePoint).t <= t) {
-      i++;
-      out.push(points[i] as PricePoint); // the real point, exactly when it happened
-    }
-    const at = points[i] as PricePoint;
-    out.push({ t, yes: at.yes, no: at.no });
-  }
-  // Every real point is kept; sort by time and drop exact duplicates.
-  out.sort((a, b) => a.t - b.t);
-  return out.filter((p, j) => j === 0 || p.t !== (out[j - 1] as PricePoint).t);
+  return pts;
 }
 
 /** Change in YES price since the market opened, in cents. */

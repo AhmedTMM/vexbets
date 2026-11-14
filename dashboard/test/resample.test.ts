@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { type PricePoint, resample } from "../src/lib/market";
+import type { PricePoint } from "../src/lib/market";
+import { resampleSeries } from "../src/lib/series";
+
+const resample = resampleSeries<PricePoint>;
 
 const p = (t: number, yes: number): PricePoint => ({ t, yes, no: 100 - yes });
 

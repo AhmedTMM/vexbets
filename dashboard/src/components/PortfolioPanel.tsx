@@ -10,6 +10,7 @@ import { cents, clock, credits, signedCredits } from "@/lib/format";
 import { useMe, usePoll } from "@/lib/hooks";
 import { sideOf, yesCents, yesNo } from "@/lib/market";
 import { deposit, type ValuePoint, valueSeries } from "@/lib/portfolio";
+import { resampleSeries } from "@/lib/series";
 import { SellButton } from "./SellButton";
 
 type Tab = "positions" | "history" | "fills";
@@ -357,7 +358,7 @@ function ValueChart({ points, up }: { points: ValuePoint[]; up: boolean }) {
   const pad = Math.max(50, (hi - lo) * 0.25);
   return (
     <ResponsiveContainer width="100%" height={220}>
-      <AreaChart data={points} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
+      <AreaChart data={resampleSeries(points, 120)} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
         <defs>
           <linearGradient id="value-fill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity={0.4} />

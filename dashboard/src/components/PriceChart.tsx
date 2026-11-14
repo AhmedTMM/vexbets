@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { clock } from "@/lib/format";
 import type { PricePoint } from "@/lib/market";
+import { resampleSeries } from "@/lib/series";
 
 const YES = "#00d394";
 const NO = "#ff4f6a";
@@ -67,6 +68,8 @@ export function PriceChart({
   height?: number | `${number}%`;
   timeFormat?: (t: number) => string;
 }) {
+  // Drawn on an even grid so a few trades still make a full, hoverable line.
+  const dense = resampleSeries(points, 120);
   const last = points.length - 1;
   const yes = Math.round(points[last]?.yes ?? 50);
   const no = Math.round(points[last]?.no ?? 50);
@@ -80,7 +83,7 @@ export function PriceChart({
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={points} margin={{ top: 12, right: 92, bottom: 0, left: -18 }}>
+      <LineChart data={dense} margin={{ top: 12, right: 92, bottom: 0, left: -18 }}>
         <CartesianGrid stroke="#2a2f35" strokeDasharray="2 4" vertical={false} />
         <XAxis
           dataKey="t"
@@ -146,7 +149,7 @@ export function Sparkline({ points, height = 56 }: { points: PricePoint[]; heigh
   const id = `spark-${up ? "up" : "down"}`;
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={points} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+      <AreaChart data={resampleSeries(points, 60)} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity={0.2} />

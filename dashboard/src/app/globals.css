@@ -22,7 +22,7 @@
   --color-mock: #f5b544;
   --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
-  --font-display: var(--font-numbers), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -71,12 +71,23 @@ body {
 }
 
 /* Big numbers and headings: tall condensed figures. */
+/* Big numbers: Instrument Sans condensed, tabular. */
 .display {
   font-family: var(--font-display);
   font-weight: 700;
+  font-stretch: 75%;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
   line-height: 1;
+}
+
+/* Headlines (market questions, outcome names): tall and condensed. */
+.headline {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-stretch: 75%;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
 }
 
 .meta {
