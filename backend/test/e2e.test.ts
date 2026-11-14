@@ -10,7 +10,7 @@ import { type Backend, startBackend } from "./harness";
  * The whole product, through the contract client: create, trade, listen, judge, pay, prove.
  */
 
-function trader(b: Backend, market: Market) {
+function trader(market: Market) {
   return async (call: Client, label: string, shares: number) =>
     call("trade", {
       params: { marketId: market.id },
@@ -62,7 +62,7 @@ describe("a market that resolves early on proof", () => {
     const alice = b.as("alice@example.com");
     const bob = b.as("bob@example.com");
     const market = await creator("createMarket", { body: yesNo() });
-    const buy = trader(b, market);
+    const buy = trader(market);
 
     const a = await buy(alice, "Yes", 30);
     const bo = await buy(bob, "No", 40);
@@ -123,7 +123,7 @@ describe("a market that closes with nothing heard", () => {
     const market = await b.as("creator@example.com")("createMarket", {
       body: yesNo({ question: "Will Sam say 'pineapple' tonight?" }),
     });
-    const buy = trader(b, market);
+    const buy = trader(market);
     const yesBuy = await buy(b.as("alice@example.com"), "Yes", 10);
     await buy(b.as("bob@example.com"), "No", 25);
 
