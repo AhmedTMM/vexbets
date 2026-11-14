@@ -7,3 +7,5 @@ node_modules/
 .vercel/
 coverage/
 *.tsbuildinfo
+.pglite/
+next-env.d.ts
