@@ -2,7 +2,7 @@ import { z } from "zod";
 import { Credits, Id, Sha256Hex, Timestamp } from "./common";
 
 /**
- * Resolution: the judge model (Gemini) reads the transcript of a market's window and
+ * Resolution: the judge model (OpenAI) reads the transcript of a market's window and
  * decides which outcome happened, quoting the exact lines that prove it.
  */
 
@@ -29,7 +29,7 @@ export type JudgeOutput = z.infer<typeof JudgeOutput>;
 
 const DecisionBase = z.object({
   marketId: Id,
-  /** Model id as sent to the provider, e.g. a Gemini model name. */
+  /** Model id as sent to the provider, e.g. "gpt-6.1-terra". */
   model: z.string().min(1),
   confidence: z.number().min(0).max(1),
   rationale: z.string(),

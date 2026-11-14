@@ -1,7 +1,9 @@
+import type OpenAI from "openai";
 import { describe, expect, it } from "vitest";
-import { geminiJudge } from "../src/judge/gemini";
+import { openaiJudge } from "../src/judge/openai";
 import { buildPrompt } from "../src/judge/prompt";
 import type { JudgeInput } from "../src/judge/types";
+import { openaiSttTokens } from "../src/stt/openai";
 
 const input: JudgeInput = {
   mode: "early",
@@ -55,14 +57,82 @@ describe("judge prompt", () => {
   });
 });
 
-const key = process.env.GEMINI_API_KEY;
-const model = process.env.GEMINI_MODEL;
+describe("OpenAI judge (offline)", () => {
+  it("sends a strict structured-output request and checks the reply against the contract", async () => {
+    const sent: Record<string, unknown>[] = [];
+    const client = {
+      responses: {
+        parse: async (req: Record<string, unknown>) => {
+          sent.push(req);
+          return {
+            status: "completed",
+            output_parsed: {
+              verdict: "Yes",
+              confidence: 0.95,
+              rationale: "Speaker 1 said it.",
+              evidence: [{ segmentId: "22222222-2222-4222-8222-222222222222", quote: " fire no cap " }],
+            },
+          };
+        },
+      },
+    } as unknown as OpenAI;
+    const out = await openaiJudge({ apiKey: "unused", client }).judge(input);
+    expect(out).toMatchObject({ verdict: "Yes", evidence: [{ quote: "fire no cap" }] });
+    const req = sent[0] as {
+      model: string;
+      reasoning: unknown;
+      text: { format: { type: string; strict: boolean } };
+    };
+    expect(req.model).toBe("gpt-6.1-terra");
+    expect(req.reasoning).toEqual({ effort: "low" });
+    expect(req.text.format).toMatchObject({ type: "json_schema", strict: true });
+    expect(JSON.stringify(req.text.format)).not.toMatch(/minLength|maxLength/);
+    expect(req).not.toHaveProperty("temperature");
+  });
 
-describe.skipIf(!key || !model)("Gemini (live, needs GEMINI_API_KEY and GEMINI_MODEL)", () => {
+  it("mints a transcription-only realtime client secret", async () => {
+    const sent: Record<string, unknown>[] = [];
+    const client = {
+      realtime: {
+        clientSecrets: {
+          create: async (req: Record<string, unknown>) => {
+            sent.push(req);
+            return { value: "ek_test", expires_at: 1_900_000_000, session: {} };
+          },
+        },
+      },
+    } as unknown as OpenAI;
+    const t = await openaiSttTokens({ apiKey: "unused", client }).mint();
+    expect(t).toEqual({ token: "ek_test", expiresAt: new Date(1_900_000_000_000) });
+    expect(sent[0]).toMatchObject({
+      session: {
+        type: "transcription",
+        audio: { input: { transcription: { model: "gpt-live-transcribe" } } },
+      },
+    });
+  });
+});
+
+const key = process.env.OPENAI_API_KEY;
+
+describe.skipIf(!key)("OpenAI judge (live, needs OPENAI_API_KEY)", () => {
+  const judge = () => openaiJudge({ apiKey: key ?? "", model: process.env.OPENAI_JUDGE_MODEL || undefined });
+
   it("finds the phrase and quotes the right line", async () => {
-    const out = await geminiJudge({ apiKey: key ?? "", model: model ?? "" }).judge(input);
+    const out = await judge().judge(input);
     expect(out.verdict).toBe("Yes");
     expect(out.evidence[0]?.segmentId).toBe("22222222-2222-4222-8222-222222222222");
     expect(out.evidence[0]?.quote.toLowerCase()).toContain("no cap");
+  });
+
+  it("stays undetermined early when it was not said", async () => {
+    const out = await judge().judge({ ...input, transcript: input.transcript.slice(0, 1) });
+    expect(out.verdict).toBe("UNDETERMINED");
+  });
+
+  it("mints a real transcription client secret", async () => {
+    const t = await openaiSttTokens({ apiKey: key ?? "" }).mint();
+    expect(t.token).toMatch(/^ek_/);
+    expect(t.expiresAt.getTime()).toBeGreaterThan(Date.now());
   });
 });

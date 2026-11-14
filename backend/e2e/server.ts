@@ -47,6 +47,7 @@ export default async function setup(project: TestProject) {
       DATABASE_URL: "",
       PGLITE_DIR: path.join(dataDir, "db"),
       STT_PROVIDER: "fake",
+      JUDGE: process.env.E2E_REAL_JUDGE ? "openai" : "fake",
       JUDGE_EVERY_MS: "1000",
       CLOSE_EVERY_MS: "250",
       CRON_SECRET,

@@ -20,7 +20,7 @@ listener tab (band connected over Web Bluetooth)
   startSession (consent: true) ─▶ open a ListenSession for the band
   sttToken ─────────────────────▶ short-lived STT token (real key stays on server)
   audio ──▶ STT provider ──▶ final text
-  appendSegments ───────────────▶ hash-chain each segment, store  ──────────▶ Gemini reads the
+  appendSegments ───────────────▶ hash-chain each segment, store  ──────────▶ OpenAI reads the
                                                                                window's transcript,
                                   Resolution + payouts ◀── JudgeOutput ─────  returns verdict +
 getProof ◀──────────────────────  market + every segment in the window         quoted evidence
