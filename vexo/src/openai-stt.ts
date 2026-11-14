@@ -1,5 +1,4 @@
 import type { FinalTranscript, SttEngine } from "@vexbets/contract";
-import type { AudioSource } from "./band-source";
 import { createSegmenter, rmsDb, type SegmentEvent } from "./segmenter";
 
 /**
@@ -15,6 +14,12 @@ import { createSegmenter, rmsDb, type SegmentEvent } from "./segmenter";
  * backend minted (sttToken), so the real API key never reaches the browser; the session's
  * model and language were fixed when it was minted.
  */
+
+/** Where the engine gets sound: Float32 PCM at 24 kHz, about 20 ms at a time. */
+export interface AudioSource {
+  start(onSamples: (samples: Float32Array, rate: number) => void): Promise<void>;
+  stop(): Promise<void>;
+}
 
 export const REALTIME_URL = "wss://api.openai.com/v1/realtime?intent=transcription";
 const APPEND_EVERY_SAMPLES = 2_400; // 100 ms at 24 kHz

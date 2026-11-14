@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { BandStrip } from "@/components/BandStrip";
 import { Flash } from "@/components/Flash";
 import { Holdings } from "@/components/Holdings";
 import { PriceChart } from "@/components/PriceChart";
@@ -10,14 +9,7 @@ import { TradeTicket } from "@/components/TradeTicket";
 import { api } from "@/lib/api";
 import { cents, credits, timeLeft } from "@/lib/format";
 import { useMe, useNow, usePoll } from "@/lib/hooks";
-import { type PricePoint, priceHistory, yesCents, yesChange, yesNo } from "@/lib/market";
-
-// An illustration of how a market moves, shown until a real market is opened or picked.
-const EXAMPLE_PROMPT = `Will Ahmed say "no cap" before lunch?`;
-const EXAMPLE_YES = [50, 50, 54, 47, 52, 61, 58, 66, 63, 71, 69, 77, 74, 100];
-const EXAMPLE: PricePoint[] = EXAMPLE_YES.map((yes, i) => ({ t: i * 50_000, yes, no: 100 - yes }));
-const minutes = (t: number) =>
-  `${Math.floor(t / 60_000)}:${String(Math.floor((t % 60_000) / 1000)).padStart(2, "0")}`;
+import { priceHistory, yesCents, yesChange, yesNo } from "@/lib/market";
 
 function Prices({ yes, change }: { yes: number; change: number }) {
   return (
@@ -42,29 +34,14 @@ function Prices({ yes, change }: { yes: number; change: number }) {
 }
 
 export function FeaturedMarket({ marketId }: { marketId: string | null }) {
-  return marketId ? <LiveMarket marketId={marketId} /> : <ExampleMarket />;
+  return marketId ? <LiveMarket marketId={marketId} /> : <NoMarket />;
 }
 
-function ExampleMarket() {
+function NoMarket() {
   return (
-    <section className="panel p-6" aria-label="Example market">
-      <div className="flex items-center justify-between gap-3">
-        <span className="meta">example · Ahmed · band #41</span>
-        <span className="rounded-full border border-line-strong px-2.5 py-0.5 font-medium text-muted text-xs">
-          Example
-        </span>
-      </div>
-      <h2 className="mt-2 font-semibold text-[28px] leading-tight tracking-[-0.01em]">{EXAMPLE_PROMPT}</h2>
-      <div className="mt-5">
-        <Prices yes={74} change={24} />
-      </div>
-      <div className="mt-5">
-        <PriceChart points={EXAMPLE} height={330} timeFormat={minutes} />
-      </div>
-      <p className="mt-4 text-muted text-sm">
-        Friends buy YES or NO shares, and the price moves with every trade. When the band hears it, YES pays
-        $1 a share. Open a market to see yours here.
-      </p>
+    <section className="panel flex min-h-[200px] flex-col items-center justify-center gap-2 p-6 text-center">
+      <h2 className="font-semibold text-xl tracking-tight">No market open</h2>
+      <p className="text-muted text-sm">Pick one in the watchlist, or open a new one there.</p>
     </section>
   );
 }
@@ -135,11 +112,6 @@ function LiveMarket({ marketId }: { marketId: string }) {
           >
             Trades, proof and details
           </Link>
-          {open && (
-            <div className="mt-4">
-              <BandStrip market={m} />
-            </div>
-          )}
         </div>
         <div className="space-y-3">
           {open && <TradeTicket market={m} yn={yn} balance={me.balance} />}

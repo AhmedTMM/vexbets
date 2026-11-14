@@ -1,14 +1,11 @@
 // The kit's browser library, vendored in vexo/kit (see kit/README.md).
 import { Band, BandAudio, bandName, canDecodeAudio, oggPackets, SimTransport } from "../kit/js/index.js";
+import type { AudioSource } from "./openai-stt";
+
+export type { AudioSource };
 
 /** 24 kHz mono: what OpenAI's realtime transcription takes. BandAudio resamples to it. */
 export const STT_RATE = 24_000;
-
-export interface AudioSource {
-  /** Starts the microphone. `onSamples` gets Float32 PCM at STT_RATE, about 20 ms at a time. */
-  start(onSamples: (samples: Float32Array, rate: number) => void): Promise<void>;
-  stop(): Promise<void>;
-}
 
 export interface BandConnection {
   name: string;

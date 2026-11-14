@@ -4,8 +4,8 @@ import { lmsr, type Market } from "@vexbets/contract";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { api, refreshAll } from "@/lib/api";
+import { TEAM_BAND, WEARER } from "@/lib/band";
 import { credits, errorText } from "@/lib/format";
-import { FRIENDS, type Friend, friendLabel, requestListen } from "@/lib/friends";
 
 const DURATIONS = [
   { label: "2m", title: "2 minutes (demo)", minutes: 2 },
@@ -24,17 +24,14 @@ const DURATIONS = [
 const LIQUIDITY_B = 30;
 const DEPOSIT = lmsr.maxSubsidy(LIQUIDITY_B, 2);
 
-const firstFriend = FRIENDS[0] as Friend;
-
 /**
- * Open a YES / NO market on what a friend will say. It settles YES the moment the band
- * hears it, NO when it closes. Opening it starts listening to that friend's band.
+ * Open a YES / NO market on what will be said near the team's band. It settles YES the
+ * moment the band hears it, NO when it closes. Listening is separate (the ListenBar).
  * The tagline and judging criteria are meant to be written by the backend's reasoning
  * model; until the contract lets the backend fill them, the question is sent for both.
  */
 export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }) {
   const router = useRouter();
-  const [friend, setFriend] = useState<Friend>(firstFriend);
   const [question, setQuestion] = useState("");
   const [minutes, setMinutes] = useState(10);
   const [error, setError] = useState("");
@@ -59,14 +56,13 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
           ],
           fallbackOutcomeIndex: 1,
           resolveEarly: true,
-          bandNumber: friend.band,
-          subjectName: friend.name,
+          bandNumber: TEAM_BAND,
+          subjectName: WEARER,
           closesAt: new Date(Date.now() + minutes * 60_000).toISOString(),
           liquidityB: LIQUIDITY_B,
         },
       });
       refreshAll();
-      requestListen({ friend, consent: true });
       setQuestion("");
       setBusy(false);
       if (onCreated) onCreated(m);
@@ -81,20 +77,6 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
     <form onSubmit={submit} className="space-y-4">
       <div className="grid gap-3">
         <label className="block">
-          <span className="label mb-1.5 block">Who's it about</span>
-          <select
-            className="field"
-            value={friend.band}
-            onChange={(e) => setFriend(FRIENDS.find((f) => f.band === Number(e.target.value)) ?? firstFriend)}
-          >
-            {FRIENDS.map((f) => (
-              <option key={f.band} value={f.band}>
-                {friendLabel(f)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
           <span className="label mb-1.5 block">Prediction</span>
           <input
             className="field"
@@ -103,7 +85,7 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
             maxLength={200}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder={`Will ${friend.name} say "no cap"?`}
+            placeholder={`Will anyone say "no cap"?`}
           />
           <span className="meta mt-1.5 block">Put the exact words in quotes.</span>
         </label>
@@ -138,9 +120,8 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
         </p>
       )}
       <p className="meta">
-        settles YES the moment {friend.name}'s band hears it · opening it starts recording {friend.name}'s
-        band, so make sure they agree · you put up {credits(DEPOSIT)} as the market maker and get back what's
-        left when it settles
+        settles YES the moment band #{TEAM_BAND} hears it · you put up {credits(DEPOSIT)} as the market maker
+        and get back what's left when it settles
       </p>
     </form>
   );
