@@ -2,7 +2,8 @@
   "name": "vexbets",
   "private": true,
   "workspaces": [
-    "contract"
+    "contract",
+    "dashboard"
   ],
   "engines": {
     "node": ">=20"
