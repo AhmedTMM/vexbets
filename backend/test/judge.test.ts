@@ -108,7 +108,9 @@ describe("OpenAI judge (offline)", () => {
     expect(sent[0]).toMatchObject({
       session: {
         type: "transcription",
-        audio: { input: { transcription: { model: "gpt-live-transcribe" } } },
+        audio: {
+          input: { transcription: { model: "gpt-live-transcribe", languages: ["en"] }, turn_detection: null },
+        },
       },
     });
   });

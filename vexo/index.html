@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vexbets Listener</title>
+    <style>
+      :root { --bg: #fafafa; --fg: #16181d; --muted: #6b7280; --card: #fff; --line: #e5e7eb; --accent: #2563eb; --ok: #15803d; --bad: #b91c1c; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #0f1115; --fg: #e6e8ee; --muted: #9aa1ad; --card: #171a21; --line: #2a2f3a; --accent: #60a5fa; --ok: #4ade80; --bad: #f87171; } }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, sans-serif; }
+      main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      p.sub { color: var(--muted); margin: 0 0 20px; }
+      .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+      label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+      input[type="text"], input[type="email"], input[type="number"] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: inherit; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+      .check { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; color: var(--fg); font-size: 14px; }
+      .check input { margin-top: 3px; }
+      button { margin-top: 16px; padding: 10px 18px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+      button:disabled { opacity: 0.5; cursor: default; }
+      button.stop { background: var(--bad); }
+      #transcript { min-height: 120px; max-height: 360px; overflow-y: auto; }
+      #transcript .line { padding: 4px 0; border-bottom: 1px solid var(--line); }
+      #transcript .live { color: var(--muted); font-style: italic; }
+      #log { font: 12px/1.5 ui-monospace, monospace; color: var(--muted); max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+      .pill { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 12px; border: 1px solid var(--line); }
+      .pill.on { color: var(--ok); border-color: var(--ok); }
+      .warn { font-size: 13px; color: var(--muted); margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Vexbets Listener</h1>
+      <p class="sub">Connects your Vexo band, turns what it hears into text, and sends it to the markets on your band.</p>
+
+      <form id="form" class="card">
+        <div class="row">
+          <div>
+            <label for="band">Band number (on the band's bag)</label>
+            <input id="band" type="number" min="1" max="999" required placeholder="the number on your bag" />
+          </div>
+          <div>
+            <label for="email">Your email (login)</label>
+            <input id="email" type="email" required placeholder="you@example.com" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="subject">Who is wearing the band</label>
+            <input id="subject" type="text" required placeholder="Sam" />
+          </div>
+          <div>
+            <label for="backend">Backend (empty = this site)</label>
+            <input id="backend" type="text" placeholder="https://your-backend.vercel.app" />
+          </div>
+        </div>
+        <label class="check"><input id="pretend" type="checkbox" /> Pretend band: no band needed, plays a recording of someone reading aloud</label>
+        <label class="check"><input id="consent" type="checkbox" required /> The wearer and the people nearby agreed to be recorded and transcribed</label>
+        <p class="warn">Real band: double-tap it first (blue blink), then press Start and pick it. While the microphone is on, its light is solid blue.</p>
+        <button id="start" type="submit">Start listening</button>
+        <button id="stop" type="button" class="stop" disabled>Stop</button>
+      </form>
+
+      <div class="card">
+        <strong>Heard</strong> <span id="state" class="pill">off</span> <span id="sent" class="pill">0 sent</span>
+        <div id="transcript"></div>
+      </div>
+
+      <div class="card"><strong>Log</strong><div id="log"></div></div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
