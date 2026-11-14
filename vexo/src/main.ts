@@ -134,7 +134,7 @@ async function refreshMarkets() {
   }
 }
 void refreshMarkets();
-setInterval(() => void refreshMarkets(), 5_000);
+setInterval(() => void refreshMarkets(), 2_000);
 $<HTMLInputElement>("band").addEventListener("change", () => void refreshMarkets());
 
 // Stop keeps the band connected, so Start again needs no chooser and no double-tap.

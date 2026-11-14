@@ -71,8 +71,10 @@ prove, with credits conserved.
   it prices after the one before it. Idempotent on `idempotencyKey`.
 - **Ingest**: segments are hash-chained exactly as `hashSegment` in the contract computes.
 - **Judging**: OpenAI Responses API, strict structured output shaped like the contract's
-  `JudgeOutput`, reasoning effort `low`. Each ingest batch judges that band's open markets, at most once per 30 s each,
-  sending everything heard in the window as context. Quotes must appear in the stored
+  `JudgeOutput`, reasoning effort `low`. Every ingested line triggers judging of that band's
+  open markets, after the response (Next `after()`), sending everything heard in the window
+  as context. One judge call per market at a time: a line that arrives meanwhile marks the
+  market `judge_pending` and the running job goes again, so no line is ever skipped. Quotes must appear in the stored
   transcript or the verdict counts as undetermined, so every proof passes `verifyProof`.
 - **Closing**: any request closes markets past `closesAt` (at most every 10 s), judging the
   full window; nothing decisive means the fallback outcome wins.

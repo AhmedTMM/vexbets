@@ -73,6 +73,10 @@ export const markets = pgTable(
     /** Credits the market holds: the creator's subsidy plus buys, minus sells and payouts. */
     escrow: integer("escrow").notNull(),
     lastJudgedAt: ts("last_judged_at"),
+    /** Set while a judge run holds this market (a lease; stale after JUDGE_LEASE_MS). */
+    judgingSince: ts("judging_since"),
+    /** New transcript arrived during a judge run: run again when it finishes. */
+    judgePending: boolean("judge_pending").notNull().default(false),
     resolution: jsonb("resolution").$type<Resolution>(),
     createdAt: ts("created_at").notNull(),
   },

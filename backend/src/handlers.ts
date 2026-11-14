@@ -56,8 +56,8 @@ export const handlers: Handlers = {
   async appendSegments({ deps, email, params, body }) {
     email(); // any logged-in caller may feed a session (demo: no device tokens)
     const r = await appendSegments(deps, params.sessionId ?? "", body.segments);
-    // New words heard: let the judge look at this band's markets (at most every 30 s each).
-    if (r.accepted > 0) await judgeBand(deps, r.session.bandNumber);
+    // New words heard: judge this band's markets now, after answering the listener.
+    if (r.accepted > 0) await deps.afterResponse(() => judgeBand(deps, r.session.bandNumber));
     return { accepted: r.accepted, segmentCount: r.segmentCount, headHash: r.headHash };
   },
 
