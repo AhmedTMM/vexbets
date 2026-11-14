@@ -1,0 +1,4 @@
+vexo-open-kit/
+.env
+.DS_Store
+__pycache__/
