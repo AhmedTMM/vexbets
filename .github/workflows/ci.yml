@@ -70,3 +70,24 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run e2e -w backend
+
+  proofs:
+    name: Bend proofs (money rules)
+    runs-on: ubuntu-latest
+    env:
+      BEND_VERSION: "2.0.40"
+      BEND_SHA256: c9ff8d67bd903fb6ad9a26b43d8a62c01021de82a44d55ce4a3dcd4732113d6b
+      BEND_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Bend (pinned, checksum verified)
+        run: |
+          curl --proto '=https' --tlsv1.2 -fsSL -o bend.tar.gz \
+            "https://github.com/bendlang/bend/releases/download/v${BEND_VERSION}/bend-${BEND_VERSION}-linux-x64.tar.gz"
+          echo "${BEND_SHA256}  bend.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/.bend" && tar -xzf bend.tar.gz -C "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/bend/bend2" "$RUNNER_TEMP/bend/guide" "$HOME/.bend/"
+          mkdir -p "$HOME/.bend/bin" && mv "$RUNNER_TEMP/bend/bin/bend" "$HOME/.bend/bin/bend"
+          echo "$HOME/.bend/bin" >> "$GITHUB_PATH"
+      - name: Check every law
+        run: bend proofs/PROOF.bend --check-only | tee out.txt && grep -q "ALL PROOFS CHECK" out.txt
