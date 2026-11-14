@@ -2,6 +2,9 @@ import { type Database, openDatabase } from "./db/client";
 import { type Deps, defaultConfig } from "./deps";
 import { handlers } from "./handlers";
 import { type Api, createApi } from "./http";
+import { keywordJudge } from "./judge/fake";
+import { geminiJudge } from "./judge/gemini";
+import type { Judge } from "./judge/types";
 
 /**
  * The process-wide server used by the Next.js routes.
@@ -9,6 +12,15 @@ import { type Api, createApi } from "./http";
  * Not set: PGlite on disk in backend/.pglite, migrated on start. Zero setup for local dev.
  */
 let server: Promise<{ api: Api; deps: Deps; database: Database }> | undefined;
+
+function pickJudge(): Judge {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const model = process.env.GEMINI_MODEL;
+  if (apiKey && model) return geminiJudge({ apiKey, model });
+  if (apiKey || model) throw new Error("set both GEMINI_API_KEY and GEMINI_MODEL, or neither");
+  console.warn("GEMINI_API_KEY not set: using the fake keyword judge");
+  return keywordJudge;
+}
 
 export function getServer() {
   server ??= (async () => {
@@ -20,6 +32,7 @@ export function getServer() {
       db: database.db,
       now: () => new Date(),
       log: { error: (err) => console.error(err) },
+      judge: pickJudge(),
       config: defaultConfig,
     };
     return { api: createApi(deps, handlers), deps, database };

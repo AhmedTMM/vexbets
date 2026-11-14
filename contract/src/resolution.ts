@@ -33,7 +33,7 @@ const DecisionBase = z.object({
   model: z.string().min(1),
   confidence: z.number().min(0).max(1),
   rationale: z.string(),
-  /** Hash of the last transcript segment the judge saw. */
+  /** Hash of the last transcript segment the judge saw, or GENESIS_HASH if it saw none. */
   headHash: Sha256Hex,
   decidedAt: Timestamp,
 });
