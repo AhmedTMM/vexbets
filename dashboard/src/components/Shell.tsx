@@ -40,10 +40,10 @@ function Mark({ size = 44 }: { size?: number }) {
 }
 
 /** VEXBETS set tight in the condensed display face, VEX in YES green. */
-function Wordmark({ size = 28 }: { size?: number }) {
+function Wordmark({ size = 28, className = "" }: { size?: number; className?: string }) {
   return (
     <span
-      className="display uppercase italic"
+      className={`display uppercase italic ${className}`}
       style={{ fontSize: size, fontWeight: 700, letterSpacing: "0.01em" }}
     >
       <span className="text-yes">Vex</span>bets
@@ -67,13 +67,22 @@ export function Shell({ children }: { children: ReactNode }) {
     <ListenerProvider>
       <div className="min-h-dvh">
         <header className="sticky top-0 z-30 border-line border-b bg-bg/90 backdrop-blur-md">
-          <div className="flex h-16 items-center gap-6 px-6">
-            <Link href="/" aria-label="Vexbets home" className="flex items-center gap-2.5 rounded-lg">
+          {/* Phones: logo, balance and Switch on one row, the page tabs on a second row.
+              From md up: everything on one row, as on desktop. */}
+          <div className="flex flex-wrap items-center gap-x-3 px-4 pt-2 sm:px-6 md:h-16 md:flex-nowrap md:gap-6 md:pt-0">
+            <Link
+              href="/"
+              aria-label="Vexbets home"
+              className="flex h-11 shrink-0 items-center gap-2 rounded-lg md:h-auto md:gap-2.5"
+            >
               <Mark size={36} />
-              <Wordmark />
+              <Wordmark className="max-[399px]:text-[22px]! max-[339px]:hidden" />
             </Link>
 
-            <nav className="flex gap-1" aria-label="Pages">
+            <nav
+              className="order-last flex w-full gap-1 py-2 md:order-none md:w-auto md:py-0"
+              aria-label="Pages"
+            >
               {PAGES.map((p) => {
                 const active = p.href === "/" ? path === "/" : path.startsWith(p.href);
                 return (
@@ -81,7 +90,7 @@ export function Shell({ children }: { children: ReactNode }) {
                     key={p.href}
                     href={p.href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex h-9 items-center rounded-full px-4 text-[15px] transition-colors duration-150 ${active ? "bg-raised font-semibold text-ink" : "text-muted hover:text-ink"}`}
+                    className={`flex h-10 items-center rounded-full px-4 text-[15px] max-md:flex-1 max-md:justify-center md:h-9 transition-colors duration-150 ${active ? "bg-raised font-semibold text-ink" : "text-muted hover:text-ink"}`}
                   >
                     {p.label}
                   </Link>
@@ -89,30 +98,30 @@ export function Shell({ children }: { children: ReactNode }) {
               })}
             </nav>
 
-            <div className="ml-auto flex items-center gap-4">
+            <div className="ml-auto flex items-center gap-2 sm:gap-4">
               {API_MODE === "mock" && (
                 <span
                   title="Running on the in-browser stand-in backend"
-                  className="meta rounded-full border border-mock/30 bg-mock/10 px-2.5 py-0.5 text-mock"
+                  className="meta rounded-full max-lg:hidden border border-mock/30 bg-mock/10 px-2.5 py-0.5 text-mock"
                 >
                   mock backend
                 </span>
               )}
-              <span className="text-muted text-sm">@{me.handle}</span>
+              <span className="text-muted text-sm max-lg:hidden">@{me.handle}</span>
               <Link
                 href="/portfolio"
                 title="Your portfolio"
-                className="display rounded-lg border border-yes/25 bg-yes/10 px-3 py-1.5 text-[22px] text-yes transition-colors duration-150 hover:bg-yes/20"
+                className="display whitespace-nowrap rounded-lg border border-yes/25 bg-yes/10 px-2.5 py-2 text-[20px] sm:px-3 sm:py-1.5 sm:text-[22px] text-yes transition-colors duration-150 hover:bg-yes/20"
               >
                 {credits(me.balance)}
               </Link>
-              <Button size="sm" variant="tertiary" onPress={() => setEmail(null)}>
+              <Button size="sm" variant="tertiary" onPress={() => setEmail(null)} className="max-md:h-10">
                 Switch
               </Button>
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-[1720px] space-y-6 p-6">
+        <main className="mx-auto max-w-[1720px] space-y-4 px-4 py-4 sm:space-y-6 sm:p-6">
           <ListenBar />
           {children}
         </main>
@@ -134,7 +143,7 @@ function SignIn({ problem }: { problem?: string }) {
             refreshAll();
           }
         }}
-        className="panel w-full max-w-sm space-y-5 p-8"
+        className="panel w-full max-w-sm space-y-5 p-6 sm:p-8"
       >
         <div className="flex items-center gap-3">
           <Mark />

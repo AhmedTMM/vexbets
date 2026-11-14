@@ -51,6 +51,7 @@ export function MarketsPanel({
           onPress={onToggleCreate}
           aria-expanded={creating}
           aria-controls="new-market"
+          className="max-sm:h-10"
         >
           {creating ? "Close" : "+ New market"}
         </Button>
@@ -84,7 +85,7 @@ export function MarketsPanel({
                     type="button"
                     onClick={() => onSelect(m.id)}
                     aria-pressed={m.id === selectedId}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors duration-150 hover:bg-raised aria-pressed:bg-raised"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors max-sm:min-h-11 duration-150 hover:bg-raised aria-pressed:bg-raised"
                   >
                     <span className="truncate text-muted">{m.question}</span>
                     <StatusBadge market={m} />

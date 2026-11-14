@@ -103,7 +103,7 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
                 key={d.minutes}
                 id={String(d.minutes)}
                 aria-label={d.title}
-                className="num flex-1"
+                className="num flex-1 max-sm:px-2"
               >
                 {i > 0 && <ToggleButtonGroup.Separator />}
                 {d.label}

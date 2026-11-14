@@ -68,7 +68,7 @@ export function WinToaster({ meId }: { meId: string }) {
 
   if (toasts.length === 0) return null;
   return (
-    <div className="fixed inset-x-0 top-16 z-50 flex flex-col items-center gap-3 px-4">
+    <div className="fixed inset-x-0 top-28 z-50 md:top-16 flex flex-col items-center gap-3 px-4">
       {toasts.map((t) => (
         <Link
           key={t.id}

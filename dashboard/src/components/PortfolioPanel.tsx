@@ -102,10 +102,10 @@ export function PortfolioPanel() {
 
   return (
     <div className="space-y-6">
-      <section className="panel p-6">
+      <section className="panel p-4 sm:p-6">
         <div className="label">Total balance</div>
-        <div className="display mt-2 text-[80px]">{credits(total)}</div>
-        <div className={`display mt-2 text-[26px] ${change >= 0 ? "text-yes" : "text-no"}`}>
+        <div className="display mt-2 text-[56px] sm:text-[80px]">{credits(total)}</div>
+        <div className={`display mt-2 text-[22px] sm:text-[26px] ${change >= 0 ? "text-yes" : "text-no"}`}>
           {signedCredits(change)} ({change >= 0 ? "+" : "−"}
           {Math.abs(pct).toFixed(1)}%)
         </div>
@@ -119,7 +119,7 @@ export function PortfolioPanel() {
       </section>
 
       <section className="panel overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-line border-b px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-line border-b px-4 py-4 sm:px-5">
           <h2 className="font-semibold text-xl">Predictions</h2>
           <ToggleButtonGroup
             aria-label="Show"
@@ -132,9 +132,10 @@ export function PortfolioPanel() {
               const t = tabs.find((x) => x.id === k);
               if (t) setTab(t.id);
             }}
+            className="max-sm:w-full"
           >
             {tabs.map((t, i) => (
-              <ToggleButton key={t.id} id={t.id}>
+              <ToggleButton key={t.id} id={t.id} className="max-sm:h-10 max-sm:flex-1 max-sm:px-1.5">
                 {i > 0 && <ToggleButtonGroup.Separator />}
                 {t.label} <span className="num">({t.n})</span>
               </ToggleButton>
@@ -142,7 +143,8 @@ export function PortfolioPanel() {
           </ToggleButtonGroup>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Wide tables scroll sideways inside here, never the page. */}
+        <div className="relative overflow-x-auto overscroll-x-contain">
           {tab === "positions" && <PositionsTable rows={open} />}
           {tab === "history" && <HistoryTable rows={history} />}
           {tab === "fills" && <FillsTable trades={mine} byId={byId} />}
@@ -182,7 +184,7 @@ function Empty({ cols, children }: { cols: number; children: React.ReactNode }) 
 
 function MarketCell({ m }: { m: Market }) {
   return (
-    <td className={`${td} max-w-[340px]`}>
+    <td className={`${td} min-w-[180px] max-w-[220px] sm:max-w-[340px]`}>
       <Link
         href={`/markets/${m.id}`}
         className="block truncate font-medium hover:text-yes"

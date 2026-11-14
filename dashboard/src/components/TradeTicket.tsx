@@ -98,7 +98,7 @@ export function TradeTicket({ market, yn, balance }: { market: Market; yn: YesNo
             size="sm"
             variant="tertiary"
             onPress={() => setShares(String(v))}
-            className="num flex-1"
+            className="num flex-1 max-sm:h-10"
           >
             {v}
           </Button>

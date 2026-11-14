@@ -56,16 +56,19 @@ export default function MarketPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-3xl">
-          <Link href="/" className="text-sm text-muted hover:text-ink">
+          <Link
+            href="/"
+            className="text-muted text-sm hover:text-ink max-sm:inline-flex max-sm:h-10 max-sm:items-center"
+          >
             ← Markets
           </Link>
-          <h1 className="mt-1 text-3xl font-semibold leading-tight">{m.question}</h1>
+          <h1 className="mt-1 font-semibold text-2xl leading-tight sm:text-3xl">{m.question}</h1>
           <p className="mt-1 text-muted">{m.tagline}</p>
           <p className="mt-2 text-sm text-muted">
             Band #{m.bandNumber} on {m.subjectName} · YES if: {m.criteria}
           </p>
         </div>
-        <div className="text-right">
+        <div className="sm:text-right">
           <StatusBadge market={m} />
           {m.status === "open" && (
             <div className="display mt-2 text-2xl">closes in {timeLeft(m.closesAt, now)}</div>
@@ -78,9 +81,11 @@ export default function MarketPage() {
 
       {m.resolution && <ResolutionPanel market={m} yn={yn} meId={me.id} />}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-6">
-          <div className="rounded-[14px] border border-line bg-surface p-4">
+      {/* Phones: the left column dissolves (contents) so the buy ticket comes right after the
+          price chart, before the trade list. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-6 max-sm:contents max-sm:space-y-0">
+          <div className="min-w-0 rounded-[14px] border border-line bg-surface p-4">
             <div className="mb-3 flex flex-wrap items-baseline gap-x-8 gap-y-2">
               <div>
                 <div className="text-xs uppercase text-yes/80">Yes</div>
@@ -98,7 +103,7 @@ export default function MarketPage() {
             <PriceChart points={pts} />
           </div>
 
-          <div className="rounded-[14px] border border-line">
+          <div className="rounded-[14px] border border-line max-sm:order-2">
             <div className="border-b border-line px-4 py-2 text-xs uppercase tracking-wider text-muted">
               Trades
             </div>
@@ -107,7 +112,10 @@ export default function MarketPage() {
               {trades.map((t) => {
                 const side = sideOf(yn, t.outcomeId);
                 return (
-                  <div key={t.id} className="flex items-center justify-between px-4 py-2 text-sm">
+                  <div
+                    key={t.id}
+                    className="flex flex-wrap items-center justify-between gap-x-3 px-4 py-2 text-sm"
+                  >
                     <span>
                       <span className="text-ink">@{t.user.handle}</span>{" "}
                       <span className="text-muted">{t.side === "buy" ? "bought" : "sold"}</span>{" "}
@@ -125,7 +133,7 @@ export default function MarketPage() {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 max-sm:order-1">
           {m.status === "open" && Date.parse(m.closesAt) > now ? (
             <TradeTicket market={m} yn={yn} balance={me.balance} />
           ) : (
