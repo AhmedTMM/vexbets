@@ -4,6 +4,7 @@ import { openDatabase } from "../src/db/client";
 import { type Deps, defaultConfig } from "../src/deps";
 import { handlers } from "../src/handlers";
 import { createApi } from "../src/http";
+import { keywordJudge } from "../src/judge/fake";
 
 /**
  * A whole backend in one process, on a fresh database.
@@ -37,6 +38,7 @@ export async function startBackend(overrides: Partial<Omit<Deps, "db">> = {}) {
     db: database.db,
     now: () => clock,
     log: { error: (err) => console.error(err) },
+    judge: keywordJudge,
     config: defaultConfig,
     ...overrides,
   };

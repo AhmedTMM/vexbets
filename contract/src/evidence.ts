@@ -90,7 +90,10 @@ export async function verifyProof(bundle: ProofBundle): Promise<ProofResult> {
   // 2. The decision is consistent with the resolution.
   const { decision } = resolution;
   if (decision.marketId !== market.id) problems.push("decision is for another market");
-  if (!heads.has(decision.headHash)) problems.push("decision headHash is not in the transcript");
+  // GENESIS_HASH means the judge saw no transcript at all (only valid with no evidence).
+  const sawNothing = decision.headHash === GENESIS_HASH && decision.evidence.length === 0;
+  if (!sawNothing && !heads.has(decision.headHash))
+    problems.push("decision headHash is not in the transcript");
   if (resolution.via === "evidence") {
     if (decision.status !== "decided") problems.push("resolved via evidence but judge was undetermined");
     else if (decision.outcomeId !== resolution.outcomeId) problems.push("judge outcome != resolved outcome");

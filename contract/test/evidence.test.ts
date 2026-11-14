@@ -111,4 +111,27 @@ describe("verifyProof", () => {
     b.market.resolution.via = "fallback";
     expect((await verifyProof(b)).ok).toBe(false);
   });
+
+  it("accepts a fallback resolution where nothing was heard", async () => {
+    const b = await bundle();
+    if (!b.market.resolution) throw new Error("setup");
+    b.market.resolution = {
+      ...b.market.resolution,
+      outcomeId: no,
+      via: "fallback",
+      decision: {
+        status: "undetermined",
+        marketId,
+        outcomeId: null,
+        model: "gemini",
+        confidence: 0,
+        rationale: "no transcript",
+        headHash: GENESIS_HASH,
+        decidedAt: "2026-11-15T00:00:00Z",
+        evidence: [],
+      },
+    };
+    b.segments = [];
+    expect(await verifyProof(b)).toEqual({ ok: true });
+  });
 });
