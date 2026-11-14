@@ -3,10 +3,11 @@ import { type Deps, defaultConfig } from "./deps";
 import { handlers } from "./handlers";
 import { type Api, createApi } from "./http";
 import { keywordJudge } from "./judge/fake";
-import { geminiJudge } from "./judge/gemini";
+import { openaiJudge, type ReasoningEffort } from "./judge/openai";
 import type { Judge } from "./judge/types";
 import { deepgramTokens } from "./stt/deepgram";
 import { fakeSttTokens } from "./stt/fake";
+import { openaiSttTokens } from "./stt/openai";
 import type { SttTokens } from "./stt/types";
 
 /**
@@ -16,18 +17,33 @@ import type { SttTokens } from "./stt/types";
  */
 let server: Promise<{ api: Api; deps: Deps; database: Database }> | undefined;
 
+/**
+ * JUDGE=openai (default when OPENAI_API_KEY is set) or JUDGE=fake (keyword judge, free).
+ * OPENAI_JUDGE_MODEL defaults to gpt-6.1-terra; OPENAI_REASONING_EFFORT defaults to low.
+ */
 function pickJudge(): Judge {
-  const apiKey = process.env.GEMINI_API_KEY;
-  const model = process.env.GEMINI_MODEL;
-  if (apiKey && model) return geminiJudge({ apiKey, model });
-  if (apiKey || model) throw new Error("set both GEMINI_API_KEY and GEMINI_MODEL, or neither");
-  console.warn("GEMINI_API_KEY not set: using the fake keyword judge");
-  return keywordJudge;
+  const apiKey = process.env.OPENAI_API_KEY;
+  const kind = process.env.JUDGE ?? (apiKey ? "openai" : "fake");
+  if (kind === "fake") {
+    console.warn("using the fake keyword judge");
+    return keywordJudge;
+  }
+  if (kind !== "openai" || !apiKey) throw new Error(`JUDGE=${kind} needs OPENAI_API_KEY`);
+  return openaiJudge({
+    apiKey,
+    model: process.env.OPENAI_JUDGE_MODEL || undefined,
+    effort: (process.env.OPENAI_REASONING_EFFORT as ReasoningEffort | undefined) || undefined,
+  });
 }
 
 function pickStt(): SttTokens | undefined {
-  const provider = process.env.STT_PROVIDER ?? (process.env.DEEPGRAM_API_KEY ? "deepgram" : "fake");
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const provider =
+    process.env.STT_PROVIDER ?? (openaiKey ? "openai" : process.env.DEEPGRAM_API_KEY ? "deepgram" : "fake");
   if (provider === "fake") return fakeSttTokens;
+  if (provider === "openai" && openaiKey) {
+    return openaiSttTokens({ apiKey: openaiKey, model: process.env.OPENAI_STT_MODEL || undefined });
+  }
   if (provider === "deepgram" && process.env.DEEPGRAM_API_KEY)
     return deepgramTokens(process.env.DEEPGRAM_API_KEY);
   throw new Error(`STT_PROVIDER=${provider} is not configured`);

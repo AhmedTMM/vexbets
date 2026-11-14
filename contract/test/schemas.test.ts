@@ -67,7 +67,7 @@ describe("resolution", () => {
       status: "decided",
       marketId: crypto.randomUUID(),
       outcomeId: crypto.randomUUID(),
-      model: "gemini",
+      model: "gpt-6.1-terra",
       confidence: 0.9,
       rationale: "heard it",
       headHash: "a".repeat(64),

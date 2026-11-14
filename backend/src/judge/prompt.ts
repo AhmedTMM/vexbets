@@ -6,7 +6,7 @@ Speech-to-text makes mistakes: accept obvious mishearings of the same words, but
 
 Rules:
 - Decide only from the transcript. Do not assume anything that is not in it.
-- "verdict" is exactly one outcome label from the list, or "UNDETERMINED".
+- "verdict" is exactly one outcome label from the list, word for word without the quotes, or "UNDETERMINED".
 - In EARLY mode the window is still open: answer an outcome only if the transcript already proves it beyond doubt. Otherwise answer UNDETERMINED.
 - In FINAL mode the window is closed: answer the outcome the transcript supports. If nothing decisive was said, answer UNDETERMINED.
 - For any outcome verdict, quote the exact words that prove it in "evidence", with the [id] of the line they come from. Copy the words exactly as written in that line.
@@ -18,7 +18,7 @@ function clock(ms: number): string {
 
 export function buildPrompt({ market, mode, transcript }: JudgeInput): string {
   const outcomes = market.outcomes
-    .map((o) => `- ${o.label}${o.criteria ? `: ${o.criteria}` : ""}`)
+    .map((o) => `- "${o.label}"${o.criteria ? ` (counts when: ${o.criteria})` : ""}`)
     .join("\n");
   const lines = transcript.length
     ? transcript

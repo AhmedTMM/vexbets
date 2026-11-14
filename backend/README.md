@@ -8,8 +8,9 @@ app/api/v1/[...path]   every contract endpoint -> src/http.ts -> src/handlers.ts
 app/api/health         database check
 app/api/cron/tick      closes due markets (daily backstop; requests also close them)
 src/services/          users, markets, trading, ingest, resolution
-src/judge/             Gemini judge, prompt, fake judges for dev and tests
-src/stt/               Deepgram short-lived tokens for the listener tab
+src/judge/             OpenAI judge, prompt, fake judges for dev and tests
+src/stt/               short-lived STT tokens for the listener tab (OpenAI, Deepgram, fake)
+e2e/                   mock end-to-end test: next start over HTTP with fake STT
 scripts/replay.ts      play a transcript file into a backend, as if a band heard it
 ```
 
@@ -19,8 +20,13 @@ scripts/replay.ts      play a transcript file into a backend, as if a band heard
     npm run dev -w backend      # http://localhost:3001, data in backend/.pglite
 
 With no `DATABASE_URL` the backend runs PGlite, a real Postgres inside Node, kept in
-`backend/.pglite` (delete it to start over). With no `GEMINI_API_KEY` it uses the keyword
-judge: it looks for the phrase in quotes in the question.
+`backend/.pglite` (delete it to start over). With no `OPENAI_API_KEY` it uses the keyword
+judge (it looks for the phrase in quotes in the question) and fake STT tokens.
+
+For the real judge, put your key in `backend/.env.local`. It is gitignored, and `next dev`,
+`next start` and the tests all read it:
+
+    OPENAI_API_KEY=sk-...
 
 Then, in a second terminal, the whole flow by hand:
 
@@ -44,7 +50,10 @@ Write your own transcripts in `scripts/transcripts/`: one line per segment, `[sp
 
     npm test -w backend                                    # in-memory PGlite, ~3 s
     TEST_DATABASE_URL=postgres://... npm test -w backend   # a real Postgres server
-    GEMINI_API_KEY=... GEMINI_MODEL=... npm test -w backend   # adds the live Gemini test
+                                                           # + live OpenAI tests if .env.local has a key
+    npm run e2e -w backend                  # mock e2e: build, next start, fake STT, keyword judge
+    E2E_REAL_JUDGE=1 npm run e2e -w backend # the same, judged by OpenAI
+    E2E_BASE_URL=https://<app>.vercel.app npm run e2e:only -w backend   # against a deployment
 
 Tests start the whole backend in-process (`test/harness.ts`) and call it through the
 contract's typed client, with a fake clock (`b.advance(ms)`), the keyword judge and a fake
@@ -61,7 +70,8 @@ prove, with credits conserved.
 - **Trades queue per market**: each trade locks the market row (`SELECT ... FOR UPDATE`), so
   it prices after the one before it. Idempotent on `idempotencyKey`.
 - **Ingest**: segments are hash-chained exactly as `hashSegment` in the contract computes.
-- **Judging**: each ingest batch judges that band's open markets, at most once per 30 s each,
+- **Judging**: OpenAI Responses API, strict structured output shaped like the contract's
+  `JudgeOutput`, reasoning effort `low`. Each ingest batch judges that band's open markets, at most once per 30 s each,
   sending everything heard in the window as context. Quotes must appear in the stored
   transcript or the verdict counts as undetermined, so every proof passes `verifyProof`.
 - **Closing**: any request closes markets past `closesAt` (at most every 10 s), judging the
@@ -74,12 +84,15 @@ prove, with credits conserved.
 2. Storage → add **Neon** Postgres. It sets `DATABASE_URL`.
 3. Environment variables:
 
-   | Name                             | What                                                     |
-   | -------------------------------- | -------------------------------------------------------- |
-   | `DATABASE_URL`                   | Neon connection string (set by step 2)                   |
-   | `GEMINI_API_KEY`, `GEMINI_MODEL` | The judge. Both or neither (neither = keyword judge)     |
-   | `DEEPGRAM_API_KEY`               | Lets `sttToken` mint short-lived tokens for the listener |
-   | `CRON_SECRET`                    | Any random string; protects `/api/cron/tick`             |
+   | Name                      | What                                                           |
+   | ------------------------- | -------------------------------------------------------------- |
+   | `DATABASE_URL`            | Neon connection string (set by step 2)                         |
+   | `OPENAI_API_KEY`          | Judge and live STT. Without it: keyword judge, fake STT        |
+   | `OPENAI_JUDGE_MODEL`      | Optional. `gpt-6.1-terra` (default); `gpt-6-luna` ~10x cheaper |
+   | `OPENAI_REASONING_EFFORT` | Optional. `none`, `low` (default), `medium`, `high`            |
+   | `OPENAI_STT_MODEL`        | Optional. `gpt-live-transcribe` (default)                      |
+   | `STT_PROVIDER`            | Optional. `openai`, `deepgram` (+ `DEEPGRAM_API_KEY`), `fake`  |
+   | `CRON_SECRET`             | Any random string; protects `/api/cron/tick`                   |
 
 4. Deploy. `vercel-build` applies migrations, then builds.
 5. Check: `curl https://<app>.vercel.app/api/health`, then run `scripts/replay.ts --url ...`.
