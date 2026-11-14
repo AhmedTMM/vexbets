@@ -1,4 +1,9 @@
 vexo-open-kit/
 .env
+.env*.local
 .DS_Store
-__pycache__/
+node_modules/
+.next/
+.vercel/
+coverage/
+*.tsbuildinfo
