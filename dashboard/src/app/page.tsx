@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FeaturedMarket } from "@/components/FeaturedMarket";
 import { MarketsPanel } from "@/components/MarketsPanel";
 import { NewMarketForm } from "@/components/NewMarketForm";
+import { api } from "@/lib/api";
+import { usePoll } from "@/lib/hooks";
 
 /**
  * The demo screen, everything visible at once: open markets as a watchlist on the left
@@ -14,7 +16,18 @@ export default function Dashboard() {
   const [creating, setCreating] = useState(false);
   const marketRef = useRef<HTMLDivElement>(null);
 
-  /** Open a market. On a phone the market sits below the list, so scroll it into view. */
+  // Show a market straight away: the newest open one, until the user picks another.
+  const { data: open } = usePoll(
+    async () => (await api("listMarkets", { query: { status: "open", limit: 1 } })).markets,
+    "newest-open",
+    3000,
+  );
+  const newest = open?.[0]?.id ?? null;
+  useEffect(() => {
+    if (!selected && newest) setSelected(newest);
+  }, [selected, newest]);
+
+  /** Open a market. On a phone the market sits above the list, so scroll back up to it. */
   const select = (id: string) => {
     setSelected(id);
     if (window.matchMedia("(max-width: 1099.98px)").matches) {
@@ -41,7 +54,11 @@ export default function Dashboard() {
         />
       </div>
       {/* scroll-mt clears the sticky top bar (two rows on a phone) when scrolled to. */}
-      <div ref={marketRef} className="min-w-0 scroll-mt-[120px] md:scroll-mt-[88px]">
+      {/* On a phone the selected market comes first, above the list; with none, nothing. */}
+      <div
+        ref={marketRef}
+        className={`order-first min-w-0 scroll-mt-[120px] md:scroll-mt-[88px] min-[1100px]:order-none ${selected ? "" : "hidden min-[1100px]:block"}`}
+      >
         <FeaturedMarket marketId={selected} />
       </div>
     </div>
