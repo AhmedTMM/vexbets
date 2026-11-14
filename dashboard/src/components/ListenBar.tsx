@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Checkbox, Input } from "@heroui/react";
 import { useState } from "react";
 import { clock } from "@/lib/format";
 import { useListener } from "@/lib/listener";
@@ -52,36 +53,41 @@ export function ListenBar() {
 
         <span className="ml-auto flex flex-wrap items-center gap-3">
           {l.notifications !== "unsupported" && l.notifications !== "granted" && (
-            <button
-              type="button"
-              onClick={l.enableNotifications}
-              disabled={l.notifications === "denied"}
-              className="btn btn-ghost h-9 px-3 text-[13px]"
-              title={l.notifications === "denied" ? "Blocked in the browser's site settings" : ""}
+            <Button
+              size="sm"
+              variant="tertiary"
+              onPress={() => void l.enableNotifications()}
+              isDisabled={l.notifications === "denied"}
             >
               {l.notifications === "denied" ? "Notifications blocked" : "Notify me when markets settle"}
-            </button>
+            </Button>
           )}
           {!listening && (
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-              People near the band agreed to be recorded
-            </label>
+            <Checkbox isSelected={consent} onChange={setConsent} variant="secondary">
+              <Checkbox.Content className="text-sm">
+                <Checkbox.Control>
+                  <Checkbox.Indicator />
+                </Checkbox.Control>
+                People near the band agreed to be recorded
+              </Checkbox.Content>
+            </Checkbox>
           )}
           {listening ? (
-            <button type="button" onClick={l.stop} className="btn btn-ghost h-9 px-4 text-[13px]">
+            <Button size="sm" variant="danger-soft" onPress={() => void l.stop()}>
               Stop
-            </button>
+            </Button>
           ) : (
-            <button
-              type="button"
-              onClick={onListen}
-              disabled={!consent || busy}
-              className="btn btn-primary h-9 px-4 text-[13px]"
-              title={consent ? "Double-tap the band first (blue blink)" : "Tick the consent box first"}
+            <Button
+              size="sm"
+              onPress={() => void onListen()}
+              isDisabled={!consent}
+              isPending={busy}
+              aria-label={
+                consent ? "Listen (double-tap the band first)" : "Listen (tick the consent box first)"
+              }
             >
               {busy ? "Connecting…" : "Listen"}
-            </button>
+            </Button>
           )}
         </span>
       </div>
@@ -105,14 +111,14 @@ export function ListenBar() {
         <div className="mt-3 space-y-2">
           {l.problem && <p className="text-no text-xs">{l.problem}</p>}
           {l.needKey && (
-            <input
+            <Input
               type="password"
               autoComplete="off"
               aria-label="Deepgram key (kept in this tab only)"
               placeholder="Deepgram key (kept in this tab only)"
               value={l.manualKey}
               onChange={(e) => l.setManualKey(e.target.value)}
-              className="field h-9 max-w-sm text-[13px]"
+              className="w-full max-w-sm text-[13px]"
             />
           )}
         </div>
@@ -126,12 +132,12 @@ export function ListenBar() {
         }}
         className="mt-3 flex gap-2"
       >
-        <input
+        <Input
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
           placeholder="No band? Type what was said and press Enter"
           aria-label="Test without the band: type what was said and press Enter"
-          className="field h-8 max-w-md text-[13px]"
+          className="w-full max-w-md text-[13px]"
         />
       </form>
     </section>

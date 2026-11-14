@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Input, Label, TextField } from "@heroui/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useState } from "react";
@@ -105,13 +106,9 @@ export function Shell({ children }: { children: ReactNode }) {
               >
                 {credits(me.balance)}
               </Link>
-              <button
-                type="button"
-                onClick={() => setEmail(null)}
-                className="btn btn-ghost h-9 px-3 text-[13px]"
-              >
+              <Button size="sm" variant="tertiary" onPress={() => setEmail(null)}>
                 Switch
-              </button>
+              </Button>
             </div>
           </div>
         </header>
@@ -147,22 +144,15 @@ function SignIn({ problem }: { problem?: string }) {
           Trade YES and NO shares on what your friends will say. A Vexo band listens and settles the market.
           New players get $100 of play money.
         </p>
-        <label className="block">
-          <span className="label mb-1.5 block">Email</span>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="you@example.com"
-            className="field"
-          />
-        </label>
+        <TextField isRequired value={email} onChange={setValue} type="email">
+          <Label className="label mb-1.5 block">Email</Label>
+          <Input placeholder="you@example.com" className="w-full" />
+        </TextField>
         <p className="meta">no password · play-money demo</p>
         {problem && <p className="text-no text-sm">{problem}</p>}
-        <button type="submit" className="btn btn-primary h-11 w-full">
+        <Button type="submit" size="lg" fullWidth>
           Start trading
-        </button>
+        </Button>
       </form>
     </div>
   );

@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@heroui/react": "^3.2.7",
     "@vexbets/contract": "*",
     "@vexbets/vexo": "*",
     "next": "^16.4.6",

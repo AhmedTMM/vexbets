@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@heroui/react";
 import type { Market } from "@vexbets/contract";
 import type { ReactNode } from "react";
 import { Flash } from "@/components/Flash";
@@ -44,15 +45,15 @@ export function MarketsPanel({
           <span className="font-semibold text-[17px]">Open markets</span>
           <span className="meta">{open.length}</span>
         </h2>
-        <button
-          type="button"
-          onClick={onToggleCreate}
+        <Button
+          size="sm"
+          variant={creating ? "tertiary" : "primary"}
+          onPress={onToggleCreate}
           aria-expanded={creating}
           aria-controls="new-market"
-          className={`btn h-8 px-3 text-[13px] ${creating ? "btn-ghost" : "btn-primary"}`}
         >
           {creating ? "Close" : "+ New market"}
-        </button>
+        </Button>
       </div>
 
       <div className="scroll-y min-h-0 flex-1">

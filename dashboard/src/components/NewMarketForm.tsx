@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Description, Input, Label, TextField, ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import { lmsr, type Market } from "@vexbets/contract";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
@@ -76,42 +77,43 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
   return (
     <form onSubmit={submit} className="space-y-4">
       <div className="grid gap-3">
-        <label className="block">
-          <span className="label mb-1.5 block">Prediction</span>
-          <input
-            className="field"
-            required
-            minLength={5}
-            maxLength={200}
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder={`Will anyone say "no cap"?`}
-          />
-          <span className="meta mt-1.5 block">Put the exact words in quotes.</span>
-        </label>
+        <TextField isRequired minLength={5} maxLength={200} value={question} onChange={setQuestion}>
+          <Label className="label mb-1.5 block">Prediction</Label>
+          <Input placeholder={`Will anyone say "no cap"?`} className="w-full" />
+          <Description className="meta mt-1.5 block">Put the exact words in quotes.</Description>
+        </TextField>
       </div>
 
       <div className="space-y-3">
-        <fieldset>
-          <legend className="label mb-1.5">Closes in</legend>
-          <div className="seg">
-            {DURATIONS.map((d) => (
-              <button
+        <div>
+          <span className="label mb-1.5 block">Closes in</span>
+          <ToggleButtonGroup
+            aria-label="Closes in"
+            selectionMode="single"
+            disallowEmptySelection
+            selectedKeys={[String(minutes)]}
+            onSelectionChange={(keys) => {
+              const k = [...keys][0];
+              if (k !== undefined) setMinutes(Number(k));
+            }}
+            className="w-full"
+          >
+            {DURATIONS.map((d, i) => (
+              <ToggleButton
                 key={d.minutes}
-                type="button"
-                title={d.title}
-                aria-pressed={minutes === d.minutes}
-                onClick={() => setMinutes(d.minutes)}
-                className="num"
+                id={String(d.minutes)}
+                aria-label={d.title}
+                className="num flex-1"
               >
+                {i > 0 && <ToggleButtonGroup.Separator />}
                 {d.label}
-              </button>
+              </ToggleButton>
             ))}
-          </div>
-        </fieldset>
-        <button type="submit" disabled={busy} className="btn btn-primary h-11 w-full">
+          </ToggleButtonGroup>
+        </div>
+        <Button type="submit" size="lg" fullWidth isPending={busy}>
           {busy ? "Opening…" : "Open market"}
-        </button>
+        </Button>
       </div>
 
       {error && (
