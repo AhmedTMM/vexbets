@@ -1,124 +1,153 @@
 "use client";
 
-import { Button, Checkbox, Input } from "@heroui/react";
+import { Button, Checkbox, Input, Modal, Switch } from "@heroui/react";
 import { useState } from "react";
 import { clock } from "@/lib/format";
 import { useListener } from "@/lib/listener";
 
 /**
- * Listening, at the top of every page. Market agnostic: one band, and every market on it
- * settles from what it hears. One click connects the band, opens a session and starts
- * speech-to-text; it keeps running while you browse.
+ * Listening, as one compact row at the top of every page. Market agnostic: one band, and
+ * every market on it settles from what it hears. "Listen" opens a short setup dialog
+ * (consent, notifications); its Start button connects the band straight from the click,
+ * which Web Bluetooth requires.
  */
 export function ListenBar() {
   const l = useListener();
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [typing, setTyping] = useState(false);
   const [typed, setTyped] = useState("");
   const listening = l.connected;
   const last = l.lines.at(-1);
+  const notifyOn = l.notifications === "granted";
 
-  const onListen = async () => {
+  const start = async (close: () => void) => {
     setBusy(true);
-    await l.listen();
+    await l.listen(); // first: the band chooser must open from this click
     setBusy(false);
+    close();
   };
 
   return (
     <section
       aria-label="Listening"
-      className={`panel px-4 py-4 sm:px-5 ${listening ? "border-yes/40 bg-yes/[0.04]" : ""}`}
+      className={`panel px-4 py-3 sm:px-5 ${listening ? "border-yes/40 bg-yes/[0.04]" : ""}`}
     >
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <span className="flex items-center gap-2.5">
-          <span
-            aria-hidden="true"
-            className={`h-2.5 w-2.5 rounded-full ${listening ? "live-dot bg-yes" : "bg-line-strong"}`}
-          />
-          <span className="font-semibold">{listening ? "Listening" : "Not listening"}</span>
-          <span className="meta">band #{l.band}</span>
-        </span>
-
-        {listening && l.level && (
-          <span className="meta num" title="What the band hears, and the room's noise floor">
-            mic {l.level.db.toFixed(0)} dB · room {l.level.floor.toFixed(0)}
-          </span>
-        )}
-        {(l.sent > 0 || l.waiting > 0) && (
-          <span className="meta num">
-            {l.sent} sent{l.waiting > 0 ? ` · ${l.waiting} waiting` : ""}
-            {l.retrying ? " · retrying" : ""}
-          </span>
-        )}
-
-        {/* Phones: the controls take their own full-width row, Listen / Stop as a big button. */}
-        <span className="flex w-full flex-wrap items-center gap-3 sm:ml-auto sm:w-auto">
-          {l.notifications !== "unsupported" && l.notifications !== "granted" && (
-            <Button
-              size="sm"
-              variant="tertiary"
-              onPress={() => void l.enableNotifications()}
-              isDisabled={l.notifications === "denied"}
-              className="max-sm:h-10"
-            >
-              {l.notifications === "denied" ? "Notifications blocked" : "Notify me when markets settle"}
-            </Button>
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className={`h-2.5 w-2.5 shrink-0 rounded-full ${listening ? "live-dot bg-yes" : "bg-line-strong"}`}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <span className="font-semibold">{listening ? "Listening" : "Not listening"}</span>
+            <span className="meta">band #{l.band}</span>
+            {listening && l.level && (
+              <span className="meta num hidden sm:inline">
+                · mic {l.level.db.toFixed(0)} dB · room {l.level.floor.toFixed(0)}
+              </span>
+            )}
+            {(l.sent > 0 || l.waiting > 0) && (
+              <span className="meta num">
+                · {l.sent} sent{l.waiting > 0 ? ` · ${l.waiting} waiting` : ""}
+                {l.retrying ? " · retrying" : ""}
+              </span>
+            )}
+          </div>
+          {(listening || last) && (
+            <p className="mt-0.5 truncate text-muted text-sm" aria-live="polite">
+              {l.interim ? (
+                <span>{l.interim}</span>
+              ) : last ? (
+                <>
+                  <span className="meta mr-1.5">{clock(last.at).slice(0, 5)}</span>
+                  <span className="text-ink">{last.text}</span>
+                </>
+              ) : (
+                <span>{l.status || "Nothing heard yet."}</span>
+              )}
+            </p>
           )}
-          {!listening && (
-            <Checkbox
-              isSelected={consent}
-              onChange={setConsent}
-              variant="secondary"
-              className="max-sm:min-h-10 max-sm:w-full"
-            >
-              <Checkbox.Content className="text-sm">
-                <Checkbox.Control>
-                  <Checkbox.Indicator />
-                </Checkbox.Control>
-                People near the band agreed to be recorded
-              </Checkbox.Content>
-            </Checkbox>
-          )}
-          {listening ? (
-            <Button
-              size="sm"
-              variant="danger-soft"
-              onPress={() => void l.stop()}
-              className="max-sm:h-11 max-sm:w-full max-sm:text-base"
-            >
-              Stop
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              onPress={() => void onListen()}
-              isDisabled={!consent}
-              isPending={busy}
-              className="max-sm:h-11 max-sm:w-full max-sm:text-base"
-              aria-label={
-                consent ? "Listen (double-tap the band first)" : "Listen (tick the consent box first)"
-              }
-            >
+        </div>
+
+        <Button
+          size="sm"
+          variant="ghost"
+          className="hidden sm:inline-flex"
+          onPress={() => setTyping((t) => !t)}
+        >
+          {typing ? "Hide" : "Type a line"}
+        </Button>
+
+        {listening ? (
+          <Button size="sm" variant="danger-soft" onPress={() => void l.stop()}>
+            Stop
+          </Button>
+        ) : (
+          <Modal>
+            <Button size="sm" isPending={busy}>
               {busy ? "Connecting…" : "Listen"}
             </Button>
-          )}
-        </span>
+            <Modal.Backdrop variant="blur">
+              <Modal.Container placement="center" size="sm">
+                <Modal.Dialog>
+                  {({ close }) => (
+                    <>
+                      <Modal.CloseTrigger />
+                      <Modal.Header>
+                        <Modal.Heading>Listen to band #{l.band}</Modal.Heading>
+                      </Modal.Header>
+                      <Modal.Body className="space-y-4">
+                        <p className="text-muted text-sm">
+                          Double-tap the band until it blinks blue, then press Start and pick it in the list.
+                          Its light stays solid blue while the microphone is on.
+                        </p>
+                        <Checkbox isSelected={consent} onChange={setConsent}>
+                          <Checkbox.Content className="text-sm">
+                            <Checkbox.Control className="border border-line-strong">
+                              <Checkbox.Indicator />
+                            </Checkbox.Control>
+                            The people near the band agreed to be recorded
+                          </Checkbox.Content>
+                        </Checkbox>
+                        {l.notifications !== "unsupported" && (
+                          <Switch
+                            className="flex items-center gap-3"
+                            isSelected={notifyOn}
+                            isDisabled={notifyOn || l.notifications === "denied"}
+                            onChange={(on) => {
+                              if (on) void l.enableNotifications();
+                            }}
+                          >
+                            <Switch.Control>
+                              <Switch.Thumb />
+                            </Switch.Control>
+                            <Switch.Content>
+                              <span className="text-sm">
+                                {l.notifications === "denied"
+                                  ? "Notifications blocked in the browser"
+                                  : "Notify me when markets settle"}
+                              </span>
+                            </Switch.Content>
+                          </Switch>
+                        )}
+                      </Modal.Body>
+                      <Modal.Footer>
+                        <Button variant="tertiary" onPress={close}>
+                          Cancel
+                        </Button>
+                        <Button isDisabled={!consent} isPending={busy} onPress={() => void start(close)}>
+                          Start
+                        </Button>
+                      </Modal.Footer>
+                    </>
+                  )}
+                </Modal.Dialog>
+              </Modal.Container>
+            </Modal.Backdrop>
+          </Modal>
+        )}
       </div>
-
-      {(listening || l.lines.length > 0 || l.status) && (
-        <p className="mt-3 truncate text-sm" aria-live="polite">
-          {l.interim ? (
-            <span className="text-muted">{l.interim}</span>
-          ) : last ? (
-            <>
-              <span className="meta mr-2">{clock(last.at).slice(0, 5)}</span>
-              {last.text}
-            </>
-          ) : (
-            <span className="text-muted">{l.status || "Nothing heard yet."}</span>
-          )}
-        </p>
-      )}
 
       {(l.problem || l.needKey) && (
         <div className="mt-3 space-y-2">
@@ -131,28 +160,31 @@ export function ListenBar() {
               placeholder="Deepgram key (kept in this tab only)"
               value={l.manualKey}
               onChange={(e) => l.setManualKey(e.target.value)}
-              className="w-full max-w-sm sm:text-[13px]"
+              className="w-full max-w-sm text-base sm:text-[13px]"
             />
           )}
         </div>
       )}
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void l.say(typed);
-          setTyped("");
-        }}
-        className="mt-3 flex gap-2"
-      >
-        <Input
-          value={typed}
-          onChange={(e) => setTyped(e.target.value)}
-          placeholder="No band? Type what was said and press Enter"
-          aria-label="Test without the band: type what was said and press Enter"
-          className="w-full max-w-md sm:text-[13px]"
-        />
-      </form>
+      {typing && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void l.say(typed);
+            setTyped("");
+          }}
+          className="mt-3"
+        >
+          <Input
+            autoFocus
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            placeholder="Type what was said and press Enter"
+            aria-label="Test without the band: type what was said and press Enter"
+            className="w-full max-w-md text-base sm:text-[13px]"
+          />
+        </form>
+      )}
     </section>
   );
 }
