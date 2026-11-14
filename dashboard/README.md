@@ -26,18 +26,20 @@ env vars on the dashboard project, with `BACKEND_URL` set to the backend's URL.
 
 ## Pages
 
-| Route           | What                                                                                                                                                                                                                                                                |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`             | The selected market full width (an example until one is opened): chart, buy YES / NO, your shares with Sell, and the band strip (listening status, Connect band, latest line, test box). Below: open markets, with the New market form folded under "+ New market". |
-| `/portfolio`    | Total balance with its change and a graph, then Positions (sell from here), History and Fills.                                                                                                                                                                      |
-| `/markets/[id]` | Full market page: chart, buy, your shares, trade tape, resolution and proof check.                                                                                                                                                                                  |
-| `/markets/new`  | The New market form on its own.                                                                                                                                                                                                                                     |
-| `/listen`       | Redirects to the dashboard: listening now lives on the market's band strip.                                                                                                                                                                                         |
+| Route           | What                                                                                                                                                                               |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`             | The selected market full width (empty until one is opened): chart, buy YES / NO, your shares with Sell. Below: open markets, with the New market form folded under "+ New market". |
+| `/portfolio`    | Total balance with its change and a graph, then Positions (sell from here), History and Fills.                                                                                     |
+| `/markets/[id]` | Full market page: chart, buy, your shares, trade tape, resolution and proof check.                                                                                                 |
+| `/markets/new`  | The New market form on its own.                                                                                                                                                    |
+| `/listen`       | Redirects to the dashboard: listening is the Listen bar at the top of every page.                                                                                                  |
 
-Friends and their band numbers are in `src/lib/friends.ts` (replace the placeholders).
-Opening a market for a friend starts listening to their band. Markets settle YES the moment
-the band hears it and NO when they close. The listener (`src/lib/listener.tsx`) wraps every
-page, so it keeps running while you browse.
+Listening is market agnostic: the **Listen bar** at the top of every page (`ListenBar.tsx`)
+listens to the team's band (`TEAM_BAND` in `src/lib/band.ts`), and every market on that band
+settles from what it hears. One click (after the consent box) connects the band, opens a
+session and starts speech-to-text; it keeps running while you browse. When a market settles,
+a banner shows once (click, Esc or 6 s closes it; it is not replayed on reload), plus a
+browser notification if you allowed them. No band at hand: type a line in the bar's test box.
 
 Markets use the contract's default liquidity, b = 30. Like the backend, the creator puts up
 the market maker's worst-case loss (`maxSubsidy(30, 2)` = $20.80) when it opens; trades flow
@@ -50,27 +52,27 @@ every 1.5 to 3 s.
 
 ## Files
 
-| Path                     | What                                                                    |
-| ------------------------ | ----------------------------------------------------------------------- |
-| `src/lib/api.ts`         | The contract client (mock or live) with `Authorization: Bearer <email>` |
-| `src/lib/mock/server.ts` | Mock backend; its toy judge settles on phrases written in quotes        |
-| `src/lib/listener.tsx`   | Band to Deepgram to `appendSegments`, and the settled banner            |
-| `src/lib/market.ts`      | YES / NO view of a contract `Market`, price history                     |
-| `src/lib/portfolio.ts`   | Balance-over-time series for the portfolio graph                        |
-| `src/lib/segments.ts`    | Sends final transcript lines in `seq` order, retries failures           |
-| `src/lib/trade.ts`       | Quote then trade, shared by Buy and every Sell button                   |
-| `src/vendor/vexo-open/`  | The kit's browser library, copied so Vercel can build it                |
-| `test/`                  | Contract round trip, segment queue, property tests (below)              |
+| Path                           | What                                                                        |
+| ------------------------------ | --------------------------------------------------------------------------- |
+| `src/lib/api.ts`               | The contract client (mock or live) with `Authorization: Bearer <email>`     |
+| `src/lib/mock/server.ts`       | Mock backend; its toy judge settles on phrases written in quotes            |
+| `src/lib/listener.tsx`         | Band to speech-to-text to `appendSegments`; settled banner and notification |
+| `src/lib/band-audio.ts`        | The band's microphone as 24 kHz PCM for the OpenAI engine                   |
+| `src/components/ListenBar.tsx` | Listen / Stop, consent, mic level, last line, test box                      |
+| `src/lib/market.ts`            | YES / NO view of a contract `Market`, price history                         |
+| `src/lib/portfolio.ts`         | Balance-over-time series for the portfolio graph                            |
+| `src/lib/segments.ts`          | Sends final transcript lines in `seq` order, retries failures               |
+| `src/lib/trade.ts`             | Quote then trade, shared by Buy and every Sell button                       |
+| `src/vendor/vexo-open/`        | The kit's browser library, copied so Vercel can build it                    |
+| `test/`                        | Contract round trip, segment queue, property tests (below)                  |
 
 ## Needs from the backend / contract
 
-1. Speech-to-text: the dashboard's listener streams the band to Deepgram and uses
-   `sttToken` when it returns `provider: "deepgram"` (a token containing a `.` is sent as
-   `bearer`, anything else as an API key). The backend on `main` currently hands out OpenAI
-   client secrets (or `fake`), so against it the band strip asks for a Deepgram key or takes
-   typed lines, which go through `appendSegments` either way.
+1. Speech-to-text follows the backend's `sttToken`: `openai` runs OpenAI Realtime
+   transcription with `@vexbets/vexo/openai-stt` (the engine tested on the real band);
+   `deepgram`, or a pasted Deepgram key, runs the kit's Deepgram link.
 2. No endpoint returns the live transcript, so other tabs see transcript lines only in the
-   proof after resolution. Live lines show on the band strip of the tab connected to the band.
+   proof after resolution. Live lines show in the Listen bar of the tab connected to the band.
 3. The tagline and YES criteria should be written by the backend's reasoning model. The
    contract still requires both, so the dashboard sends the question for each for now.
 

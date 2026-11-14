@@ -6,7 +6,7 @@ import { MarketsPanel } from "@/components/MarketsPanel";
 import { NewMarketForm } from "@/components/NewMarketForm";
 
 /**
- * The demo screen: the featured market full width (an example until one is opened or
+ * The demo screen: the featured market full width (empty until one is opened or
  * picked), then every market, with the New market form folded away under them.
  */
 export default function Dashboard() {

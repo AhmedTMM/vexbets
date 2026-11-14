@@ -8,6 +8,7 @@ import { credits } from "@/lib/format";
 import { useMe } from "@/lib/hooks";
 import { ListenerProvider } from "@/lib/listener";
 import { setEmail } from "@/lib/session";
+import { ListenBar } from "./ListenBar";
 import { WinToaster } from "./WinToaster";
 
 /** The mark: the Vexo three-triangle logo, with a poker chip in the bottom corner. */
@@ -115,6 +116,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 {API_MODE === "mock" ? "mock backend · in this browser" : "backend connected"}
               </span>
             </header>
+            <ListenBar />
             {children}
           </main>
         </div>

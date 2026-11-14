@@ -1,22 +1,38 @@
 "use client";
 
-// Listens to one friend's band: Web Bluetooth (Chrome / Edge) -> speech-to-text ->
-// appendSegments. Lives in a provider around every page, so it keeps running while you
-// browse. Opening a market for a friend starts listening to that friend automatically;
-// the controls (connect, stop, test line) are shown on that market's card (BandStrip).
+// Listens to the team's band: Web Bluetooth (Chrome / Edge) -> speech-to-text ->
+// appendSegments. Market agnostic: every market on the band settles from what it hears.
+// Lives in a provider around every page, so it keeps running while you browse; the
+// controls are the ListenBar at the top.
+//
+// Speech-to-text follows the backend: an "openai" token runs OpenAI Realtime transcription
+// (@vexbets/vexo/openai-stt, the engine tested on the real band); a "deepgram" token, or a
+// pasted Deepgram key, runs the kit's Deepgram link.
 
-import type { ListenSession, Market } from "@vexbets/contract";
+import type { ListenSession, Market, SttEngine } from "@vexbets/contract";
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, refreshAll } from "./api";
+import { TEAM_BAND, WEARER } from "./band";
+import { bandAudioSource } from "./band-audio";
 import { credits, errorText } from "./format";
-import type { Friend, ListenRequest } from "./friends";
 import { usePoll } from "./hooks";
 import { yesNo } from "./market";
 import { SegmentQueue } from "./segments";
 
 type BandLink = Awaited<ReturnType<typeof import("@/vendor/vexo-open/index.js")["Band"]["connect"]>>;
 type SttLink = ReturnType<typeof import("@/vendor/vexo-open/deepgram.js")["deepgramLink"]>;
+type NotifyState = NotificationPermission | "unsupported";
+
+/** Load the band and STT code before the click: Web Bluetooth must open from the click itself. */
+function preload() {
+  void import("@/vendor/vexo-open/index.js");
+  void import("@vexbets/vexo/openai-stt");
+}
+
+function notifyState(): NotifyState {
+  return typeof Notification === "undefined" ? "unsupported" : Notification.permission;
+}
 
 export interface Line {
   key: number;
@@ -37,11 +53,17 @@ export interface Listener {
   sent: number;
   waiting: number;
   retrying: boolean;
-  start: (f: Friend) => Promise<void>;
+  /** Microphone loudness while OpenAI STT runs: dB, and the room's noise floor. */
+  level: { db: number; floor: number } | null;
+  /** Browser notifications for settled markets. */
+  notifications: NotifyState;
+  enableNotifications: () => Promise<void>;
+  band: number;
+  /** Connect the band, open a session and start speech-to-text, in one click. */
+  listen: () => Promise<void>;
   stop: () => Promise<void>;
-  connectBand: () => Promise<void>;
   /** Test without the band: send a line as if it had been heard. */
-  say: (text: string) => void;
+  say: (text: string) => Promise<void>;
 }
 
 const Ctx = createContext<Listener | null>(null);
@@ -61,27 +83,36 @@ export function ListenerProvider({ children }: { children: ReactNode }) {
   const [interim, setInterim] = useState("");
   const [manualKey, setManualKey] = useState("");
   const [needKey, setNeedKey] = useState(false);
+  const [level, setLevel] = useState<{ db: number; floor: number } | null>(null);
+  const [notifications, setNotifications] = useState<NotifyState>("default");
   const [, bump] = useState(0);
+
+  useEffect(() => {
+    preload();
+    setNotifications(notifyState());
+  }, []);
+
+  const enableNotifications = async () => {
+    if (typeof Notification === "undefined") return;
+    setNotifications(await Notification.requestPermission());
+  };
 
   const queue = useRef<SegmentQueue | null>(null);
   const bandRef = useRef<BandLink | null>(null);
   const stt = useRef<SttLink | null>(null);
+  const engine = useRef<SttEngine | null>(null);
   const sentenceStart = useRef<number | null>(null);
   const lineKey = useRef(0);
   const sessionRef = useRef<ListenSession | null>(null);
   sessionRef.current = session;
 
+  // Every market, so a settlement shows up (banner + notification) whatever page you are on.
   const { data: markets } = usePoll(
-    async () =>
-      session
-        ? (await api("listMarkets", { query: { limit: 100 } })).markets.filter(
-            (m) => m.bandNumber === session.bandNumber,
-          )
-        : [],
-    session?.id ?? "none",
+    async () => (await api("listMarkets", { query: { limit: 100 } })).markets,
+    "all-markets",
     1500,
   );
-  const banner = useResolvedBanner(markets);
+  const [banner, dismissBanner] = useResolvedBanner(markets);
 
   // Retry sending every few seconds if the network dropped.
   useEffect(() => {
@@ -96,24 +127,32 @@ export function ListenerProvider({ children }: { children: ReactNode }) {
     setLines((l) => [...l.slice(-40), { key, text, at: endMs }]);
   };
 
-  const start = async (f: Friend) => {
+  const start = async (): Promise<ListenSession | null> => {
     setProblem("");
     try {
       const s = await api("startSession", {
-        body: { bandNumber: f.band, subjectName: f.name, consentConfirmed: true },
+        body: { bandNumber: TEAM_BAND, subjectName: WEARER, consentConfirmed: true },
       });
       queue.current = new SegmentQueue(api, s.id, () => bump((x) => x + 1));
+      sessionRef.current = s;
       setLines([]);
       setSession(s);
       setStatus("Connect the band, or type a test line.");
+      return s;
     } catch (e) {
       setProblem(errorText(e));
+      return null;
     }
   };
 
   const stop = async () => {
     stt.current?.stop();
     stt.current = null;
+    const eng = engine.current;
+    engine.current = null;
+    await eng?.stop().catch(() => {});
+    setLevel(null);
+    setInterim("");
     const b = bandRef.current;
     bandRef.current = null;
     setConnected(false);
@@ -129,40 +168,27 @@ export function ListenerProvider({ children }: { children: ReactNode }) {
     refreshAll();
   };
 
-  // A market was opened for a friend: listen to them (switching bands if needed).
-  const startRef = useRef(start);
-  startRef.current = start;
-  const stopRef = useRef(stop);
-  stopRef.current = stop;
-  useEffect(() => {
-    const onRequest = async (e: Event) => {
-      const { friend: f, consent } = (e as CustomEvent<ListenRequest>).detail;
-      if (!consent) return;
-      const current = sessionRef.current;
-      if (current?.bandNumber === f.band) return;
-      if (current) await stopRef.current();
-      await startRef.current(f);
-    };
-    window.addEventListener("vexbets:listen", onRequest);
-    return () => window.removeEventListener("vexbets:listen", onRequest);
-  }, []);
+  /** OpenAI Realtime transcription from the band's samples (the backend minted the token). */
+  const startOpenAI = async (b: BandLink, token: string) => {
+    const { openaiRealtimeStt } = await import("@vexbets/vexo/openai-stt");
+    const eng = openaiRealtimeStt({
+      token,
+      audio: bandAudioSource(b, setStatus),
+      onLive: setInterim,
+      onLog: (m) => console.log("[vexbets stt]", m),
+      onLevel: (db, floor) => setLevel({ db, floor }),
+    });
+    await eng.start((t) => {
+      addFinal(t.text, t.startMs, t.endMs);
+      setInterim("");
+    });
+    engine.current = eng;
+    setStatus(`Listening to ${b.name}. The band's light is solid blue.`);
+  };
 
-  const startStt = async (s: ListenSession): Promise<SttLink | null> => {
+  /** The kit's Deepgram link: a pasted key, or a Deepgram token from the backend. */
+  const startDeepgram = async (b: BandLink, key: string, scheme: "token" | "bearer") => {
     const { deepgramLink } = await import("@/vendor/vexo-open/deepgram.js");
-    let key = manualKey.trim();
-    let scheme: "token" | "bearer" = "token";
-    if (!key) {
-      const t = await api("sttToken", { body: { sessionId: s.id } }).catch(() => null);
-      if (t && t.provider.toLowerCase() === "deepgram") {
-        key = t.token;
-        scheme = t.token.includes(".") ? "bearer" : "token"; // short-lived JWT vs. plain key
-      }
-    }
-    if (!key) {
-      setNeedKey(true);
-      setProblem("No speech-to-text token yet. Paste a Deepgram key, or type a test line.");
-      return null;
-    }
     const link = deepgramLink({ key, scheme });
     link.start({
       onText: ({ final, text }) => {
@@ -177,32 +203,47 @@ export function ListenerProvider({ children }: { children: ReactNode }) {
         setStatus(st === "listening" ? "Listening. The band's light is solid blue." : "Speech-to-text off."),
       onError: (p) => setProblem(`Speech-to-text stopped (${p}). Check the key and connect again.`),
     });
-    return link;
+    stt.current = link;
+    b.on("audio", (a) => link.packet(a.opus));
+    await b.configure({ audio: true });
   };
 
-  const connectBand = async () => {
-    const s = sessionRef.current;
-    if (!s) return;
+  const listen = async () => {
     setProblem("");
+    setNeedKey(false);
     try {
+      // The band first: Chrome only opens its chooser straight from the click.
       setStatus("Double-tap the band (blue blink), then pick it in the list…");
-      const { Band } = await import("@/vendor/vexo-open/index.js");
-      const b = await Band.connect(s.bandNumber, { autoReconnect: true });
-      bandRef.current = b;
+      let b = bandRef.current;
+      if (!b) {
+        const { Band } = await import("@/vendor/vexo-open/index.js");
+        b = await Band.connect(TEAM_BAND, { autoReconnect: true });
+        bandRef.current = b;
+      }
       setConnected(true);
-      const link = await startStt(s);
-      if (!link) return;
-      stt.current = link;
-      b.on("audio", (a) => link.packet(a.opus));
-      await b.configure({ audio: true });
-      setStatus(`Connected to ${b.name}.`);
+
+      const s = sessionRef.current ?? (await start());
+      if (!s) return;
+
+      // Then speech-to-text, whichever the backend serves.
+      const key = manualKey.trim();
+      if (key) return await startDeepgram(b, key, "token");
+      const t = await api("sttToken", { body: { sessionId: s.id } }).catch(() => null);
+      const provider = t?.provider.toLowerCase();
+      if (t && provider === "openai") return await startOpenAI(b, t.token);
+      if (t && provider === "deepgram") {
+        return await startDeepgram(b, t.token, t.token.includes(".") ? "bearer" : "token");
+      }
+      setNeedKey(true);
+      setProblem("The backend has no speech-to-text key. Paste a Deepgram key, or type a test line.");
     } catch (e) {
       setProblem(`${errorText(e)}. Use Chrome or Edge, double-tap the band, and try again.`);
     }
   };
 
-  const say = (text: string) => {
+  const say = async (text: string) => {
     if (!text.trim()) return;
+    if (!sessionRef.current && !(await start())) return;
     const t = Date.now();
     addFinal(text, t - 1500, t);
   };
@@ -221,54 +262,128 @@ export function ListenerProvider({ children }: { children: ReactNode }) {
     sent: q?.sent ?? 0,
     waiting: q?.waiting ?? 0,
     retrying: !!q?.lastError,
-    start,
+    level,
+    notifications,
+    enableNotifications,
+    band: TEAM_BAND,
+    listen,
     stop,
-    connectBand,
     say,
   };
 
   return (
     <Ctx.Provider value={value}>
       {children}
-      {banner && <SettledBanner market={banner} />}
+      {banner && <SettledBanner market={banner} onClose={dismissBanner} />}
     </Ctx.Provider>
   );
 }
 
-/** The newest market on this band that resolved while listening. */
-function useResolvedBanner(markets: Market[] | undefined): Market | null {
-  const known = useRef<Map<string, string> | null>(null);
+const SHOWN = "vexbets.settled-banners";
+
+function readShown(): Set<string> {
+  try {
+    return new Set(JSON.parse(sessionStorage.getItem(SHOWN) ?? "[]") as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveShown(ids: Set<string>) {
+  try {
+    sessionStorage.setItem(SHOWN, JSON.stringify([...ids]));
+  } catch {}
+}
+
+/**
+ * A market that just settled, shown once. Markets already settled when the page loads are
+ * never replayed, and a market whose banner was shown (or dismissed) is never shown again
+ * in this tab, even after a reload.
+ */
+function useResolvedBanner(markets: Market[] | undefined): [Market | null, () => void] {
+  const shown = useRef<Set<string> | null>(null);
   const [banner, setBanner] = useState<Market | null>(null);
   useEffect(() => {
     if (!markets) return;
-    if (known.current === null) {
-      known.current = new Map(markets.map((m) => [m.id, m.status]));
+    if (shown.current === null) {
+      // First load: everything settled so far counts as seen.
+      shown.current = readShown();
+      for (const m of markets) if (m.status === "resolved") shown.current.add(m.id);
+      saveShown(shown.current);
       return;
     }
     for (const m of markets) {
-      const before = known.current.get(m.id);
-      if (m.status === "resolved" && before !== "resolved") setBanner(m);
-      known.current.set(m.id, m.status);
+      if (m.status !== "resolved" || shown.current.has(m.id)) continue;
+      shown.current.add(m.id);
+      saveShown(shown.current);
+      setBanner(m);
+      notifySettled(m);
     }
   }, [markets]);
   useEffect(() => {
     if (!banner) return;
-    const t = setTimeout(() => setBanner(null), 12_000);
-    return () => clearTimeout(t);
+    const t = setTimeout(() => setBanner(null), 6_000);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setBanner(null);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("keydown", onKey);
+    };
   }, [banner]);
-  return banner;
+  return [banner, () => setBanner(null)];
 }
 
-function SettledBanner({ market }: { market: Market }) {
+/** A system notification, so a settlement is seen even with the tab in the background. */
+function notifySettled(m: Market) {
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  const r = m.resolution;
+  const yn = yesNo(m);
+  const side = r && yn ? (r.outcomeId === yn.yes.id ? "YES" : "NO") : "";
+  const quote = r?.decision.evidence[0]?.quote;
+  try {
+    const n = new Notification(`Settled ${side}: ${m.question}`, {
+      body: quote
+        ? `Heard: “${quote}”`
+        : r?.via === "fallback"
+          ? "Nothing decisive was heard before it closed."
+          : "",
+      tag: `vexbets-${m.id}`,
+    });
+    n.onclick = () => {
+      window.focus();
+      window.location.assign(`/markets/${m.id}`);
+    };
+  } catch {
+    // Some browsers only allow notifications from a service worker; the banner still shows.
+  }
+}
+
+function SettledBanner({ market, onClose }: { market: Market; onClose: () => void }) {
   const r = market.resolution;
   const yn = yesNo(market);
   const yes = !!r && !!yn && r.outcomeId === yn.yes.id;
   const total = r?.payouts.reduce((a, p) => a + p.credits, 0) ?? 0;
   return createPortal(
-    <div className="fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-8 backdrop-blur-sm">
+    // Click anywhere, press Esc, or wait 6 s to close.
+    // biome-ignore lint/a11y/useKeyWithClickEvents: Esc closes it (window listener above)
+    // biome-ignore lint/a11y/noStaticElementInteractions: the backdrop is a click-to-close layer
+    <div
+      onClick={onClose}
+      className="fade-in fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/60 p-8 backdrop-blur-sm"
+    >
       <div
-        className={`toast-in w-full max-w-2xl rounded-[24px] border-2 bg-surface p-12 text-center shadow-2xl ${yes ? "border-yes" : "border-no"}`}
+        role="alertdialog"
+        aria-label={`Settled ${yes ? "YES" : "NO"}: ${market.question}`}
+        className={`toast-in relative w-full max-w-2xl rounded-[24px] border-2 bg-surface p-12 text-center shadow-2xl ${yes ? "border-yes" : "border-no"}`}
       >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-4 right-5 text-2xl text-muted transition-colors duration-150 hover:text-ink"
+        >
+          ×
+        </button>
         <div className="text-6xl">{yes ? "🎉" : "⌛"}</div>
         <div className="mt-5 font-semibold text-4xl tracking-tight">{market.question}</div>
         <div className={`num mt-3 font-semibold text-2xl ${yes ? "text-yes" : "text-no"}`}>
@@ -282,6 +397,7 @@ function SettledBanner({ market }: { market: Market }) {
             {credits(total)} paid to {r?.payouts.length} trader{r?.payouts.length === 1 ? "" : "s"}
           </div>
         )}
+        <div className="meta mt-6">click anywhere or press Esc to close</div>
       </div>
     </div>,
     document.body,
