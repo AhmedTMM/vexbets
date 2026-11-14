@@ -5,6 +5,7 @@ import { type Deps, defaultConfig } from "../src/deps";
 import { handlers } from "../src/handlers";
 import { createApi } from "../src/http";
 import { keywordJudge } from "../src/judge/fake";
+import type { SttTokens } from "../src/stt/types";
 
 /**
  * A whole backend in one process, on a fresh database.
@@ -29,6 +30,13 @@ async function freshDatabase() {
   };
 }
 
+export const fakeStt: SttTokens = {
+  provider: "fake",
+  async mint() {
+    return { token: "fake-stt-token", expiresAt: new Date(Date.now() + 300_000) };
+  },
+};
+
 export async function startBackend(overrides: Partial<Omit<Deps, "db">> = {}) {
   const database = await freshDatabase();
   await database.migrate();
@@ -39,6 +47,7 @@ export async function startBackend(overrides: Partial<Omit<Deps, "db">> = {}) {
     now: () => clock,
     log: { error: (err) => console.error(err) },
     judge: keywordJudge,
+    stt: fakeStt,
     config: defaultConfig,
     ...overrides,
   };

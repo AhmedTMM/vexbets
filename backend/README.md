@@ -3,31 +3,88 @@
 Next.js route handlers on Vercel, Postgres through Drizzle. Implements every endpoint in
 [`contract/src/api.ts`](../contract/src/api.ts) behind one router (`src/http.ts`).
 
-## Run it
+```
+app/api/v1/[...path]   every contract endpoint -> src/http.ts -> src/handlers.ts
+app/api/health         database check
+app/api/cron/tick      closes due markets (daily backstop; requests also close them)
+src/services/          users, markets, trading, ingest, resolution
+src/judge/             Gemini judge, prompt, fake judges for dev and tests
+src/stt/               Deepgram short-lived tokens for the listener tab
+scripts/replay.ts      play a transcript file into a backend, as if a band heard it
+```
 
-    npm install            # in the repo root
-    npm run dev -w backend # http://localhost:3001, data in backend/.pglite (no setup)
-    curl localhost:3001/api/health
+## Run it on your own (no band, no keys)
 
-With no `DATABASE_URL`, the backend runs PGlite: a real Postgres engine inside Node, kept
-on disk in `backend/.pglite`. Delete that folder to start over.
+    npm install                 # in the repo root
+    npm run dev -w backend      # http://localhost:3001, data in backend/.pglite
+
+With no `DATABASE_URL` the backend runs PGlite, a real Postgres inside Node, kept in
+`backend/.pglite` (delete it to start over). With no `GEMINI_API_KEY` it uses the keyword
+judge: it looks for the phrase in quotes in the question.
+
+Then, in a second terminal, the whole flow by hand:
+
+    # 1. create a market (closesAt: some time in the next hours)
+    curl -X POST localhost:3001/api/v1/markets -H 'authorization: Bearer you@example.com' \
+      -H 'content-type: application/json' -d '{"question":"Will Sam say '"'"'no cap'"'"' tonight?",
+      "tagline":"t","criteria":"Anyone near the band says no cap","outcomes":[{"label":"Yes"},{"label":"No"}],
+      "fallbackOutcomeIndex":1,"bandNumber":<band>,"subjectName":"Sam","closesAt":"<ISO time>"}'
+
+    # 2. trade as a friend: POST /api/v1/markets/<id>/trades as friend@example.com
+
+    # 3. pretend to be the band
+    npx tsx scripts/replay.ts --band <band> --email you@example.com scripts/transcripts/no-cap.txt
+
+    # 4. see the result and the proof
+    curl localhost:3001/api/v1/markets/<id>/proof -H 'authorization: Bearer you@example.com'
+
+Write your own transcripts in `scripts/transcripts/`: one line per segment, `[speaker] text`.
 
 ## Test it
 
-    npm test -w backend                                    # in-memory PGlite
+    npm test -w backend                                    # in-memory PGlite, ~3 s
     TEST_DATABASE_URL=postgres://... npm test -w backend   # a real Postgres server
+    GEMINI_API_KEY=... GEMINI_MODEL=... npm test -w backend   # adds the live Gemini test
 
 Tests start the whole backend in-process (`test/harness.ts`) and call it through the
-contract's typed client, so they cover the same parsing, auth and errors as production.
-The clock is fake (`b.advance(ms)`).
+contract's typed client, with a fake clock (`b.advance(ms)`), the keyword judge and a fake
+STT provider. `test/e2e.test.ts` is the whole product: create, trade, listen, judge, pay,
+prove, with credits conserved.
 
-## Database
+## How it works
 
-    npm run db:generate -w backend   # after editing src/db/schema.ts: writes drizzle/*.sql
-    DATABASE_URL=... npm run db:migrate -w backend
+- **Auth**: `Authorization: Bearer <email>`. First sight of an email creates the user with
+  10,000 credits. No passwords, no security: a demo with play money.
+- **Credits**: every movement is a `ledger` row, and `users.balance` is updated in the same
+  transaction. Users plus market escrows always equal the credits granted (tested).
+- **Creating a market** costs its worst-case loss (`lmsr.maxSubsidy`), held in escrow.
+- **Trades queue per market**: each trade locks the market row (`SELECT ... FOR UPDATE`), so
+  it prices after the one before it. Idempotent on `idempotencyKey`.
+- **Ingest**: segments are hash-chained exactly as `hashSegment` in the contract computes.
+- **Judging**: each ingest batch judges that band's open markets, at most once per 30 s each,
+  sending everything heard in the window as context. Quotes must appear in the stored
+  transcript or the verdict counts as undetermined, so every proof passes `verifyProof`.
+- **Closing**: any request closes markets past `closesAt` (at most every 10 s), judging the
+  full window; nothing decisive means the fallback outcome wins.
+- **Settlement**: 100 credits per winning share; what is left in escrow goes to the creator.
 
-On Vercel, `vercel-build` applies migrations before `next build`.
+## Deploy on Vercel
 
-## Auth
+1. New Vercel project from this repo, **Root Directory `backend`**.
+2. Storage → add **Neon** Postgres. It sets `DATABASE_URL`.
+3. Environment variables:
 
-`Authorization: Bearer <email>`. No password, no security: it is a demo with play money.
+   | Name                             | What                                                     |
+   | -------------------------------- | -------------------------------------------------------- |
+   | `DATABASE_URL`                   | Neon connection string (set by step 2)                   |
+   | `GEMINI_API_KEY`, `GEMINI_MODEL` | The judge. Both or neither (neither = keyword judge)     |
+   | `DEEPGRAM_API_KEY`               | Lets `sttToken` mint short-lived tokens for the listener |
+   | `CRON_SECRET`                    | Any random string; protects `/api/cron/tick`             |
+
+4. Deploy. `vercel-build` applies migrations, then builds.
+5. Check: `curl https://<app>.vercel.app/api/health`, then run `scripts/replay.ts --url ...`.
+
+## Database changes
+
+    # edit src/db/schema.ts, then:
+    npm run db:generate -w backend   # writes drizzle/NNNN_*.sql; commit it

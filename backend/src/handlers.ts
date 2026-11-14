@@ -1,7 +1,10 @@
+import { ContractError } from "@vexbets/contract";
+import { eq } from "drizzle-orm";
+import { listenSessions } from "./db/schema";
 import type { Handlers } from "./http";
 import { appendSegments, endSession, startSession } from "./services/ingest";
 import { createMarket, getMarket, listMarkets } from "./services/markets";
-import { getProof, judgeBand } from "./services/resolution";
+import { getProof, judgeBand, maybeCloseDue } from "./services/resolution";
 import { listPositions, listTrades, quote, trade } from "./services/trading";
 import { userForEmail } from "./services/users";
 
@@ -18,18 +21,22 @@ export const handlers: Handlers = {
   },
 
   async listMarkets({ deps, query }) {
+    await maybeCloseDue(deps);
     return listMarkets(deps, query);
   },
 
   async getMarket({ deps, params }) {
+    await maybeCloseDue(deps);
     return getMarket(deps, params.marketId ?? "");
   },
 
   async quote({ deps, params, body }) {
+    await maybeCloseDue(deps);
     return quote(deps, params.marketId ?? "", body);
   },
 
   async trade({ deps, email, params, body }) {
+    await maybeCloseDue(deps);
     const u = await userForEmail(deps, email());
     return trade(deps, u, params.marketId ?? "", body);
   },
@@ -60,6 +67,21 @@ export const handlers: Handlers = {
   },
 
   async getProof({ deps, params }) {
+    await maybeCloseDue(deps);
     return getProof(deps, params.marketId ?? "");
+  },
+
+  async sttToken({ deps, email, body }) {
+    email();
+    const [session] = await deps.db
+      .select()
+      .from(listenSessions)
+      .where(eq(listenSessions.id, body.sessionId));
+    if (!session) throw new ContractError("not_found", "no such session");
+    if (session.endedAt) throw new ContractError("conflict", "this session has ended");
+    if (!deps.stt)
+      throw new ContractError("internal", "speech-to-text is not configured on this server", 503);
+    const { token, expiresAt } = await deps.stt.mint();
+    return { provider: deps.stt.provider, token, expiresAt: expiresAt.toISOString() };
   },
 };
