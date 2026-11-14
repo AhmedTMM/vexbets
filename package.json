@@ -4,7 +4,8 @@
   "workspaces": [
     "contract",
     "backend",
-    "vexo"
+    "vexo",
+    "dashboard"
   ],
   "engines": {
     "node": ">=20"
