@@ -76,7 +76,7 @@ export async function decide(deps: Deps, m: Market, mode: "early" | "final"): Pr
   const outcome = m.outcomes.find((o) => norm(o.label) === norm(out.verdict));
   const base = {
     marketId: m.id,
-    model: deps.judge.model,
+    model: out.model ?? deps.judge.model,
     confidence: out.confidence,
     rationale: out.rationale,
     headHash: rows.at(-1)?.hash ?? GENESIS_HASH,

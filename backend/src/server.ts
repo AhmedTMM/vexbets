@@ -4,6 +4,7 @@ import { type Deps, defaultConfig } from "./deps";
 import { handlers } from "./handlers";
 import { type Api, createApi } from "./http";
 import { keywordJudge } from "./judge/fake";
+import { hybridJudge } from "./judge/hybrid";
 import { openaiJudge, type ReasoningEffort } from "./judge/openai";
 import type { Judge } from "./judge/types";
 import { deepgramTokens } from "./stt/deepgram";
@@ -30,11 +31,13 @@ function pickJudge(): Judge {
     return keywordJudge;
   }
   if (kind !== "openai" || !apiKey) throw new Error(`JUDGE=${kind} needs OPENAI_API_KEY`);
-  return openaiJudge({
-    apiKey,
-    model: process.env.OPENAI_JUDGE_MODEL || undefined,
-    effort: (process.env.OPENAI_REASONING_EFFORT as ReasoningEffort | undefined) || undefined,
-  });
+  return hybridJudge(
+    openaiJudge({
+      apiKey,
+      model: process.env.OPENAI_JUDGE_MODEL || undefined,
+      effort: (process.env.OPENAI_REASONING_EFFORT as ReasoningEffort | undefined) || undefined,
+    }),
+  );
 }
 
 function pickStt(): SttTokens | undefined {

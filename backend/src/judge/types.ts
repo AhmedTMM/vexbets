@@ -23,5 +23,6 @@ export interface JudgeInput {
 export interface Judge {
   /** Model id recorded in the Decision. */
   model: string;
-  judge(input: JudgeInput): Promise<JudgeOutput>;
+  /** `model`, when set, names what actually decided (a hybrid judge's heuristic, say). */
+  judge(input: JudgeInput): Promise<JudgeOutput & { model?: string }>;
 }

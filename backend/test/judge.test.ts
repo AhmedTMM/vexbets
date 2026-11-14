@@ -133,6 +133,32 @@ describe.skipIf(!key)("OpenAI judge (live, needs OPENAI_API_KEY)", () => {
     expect(out.verdict).toBe("UNDETERMINED");
   });
 
+  it("judges by meaning: a breakup counts as talking about an ex", async () => {
+    const out = await judge().judge({
+      ...input,
+      market: {
+        ...input.market,
+        question: "Will the wearer talk about their ex?",
+        criteria:
+          "Someone near the band talks about their own ex-partner, by that word or clearly by context.",
+        outcomes: [
+          { ...(input.market.outcomes[0] as (typeof input.market.outcomes)[number]), criteria: null },
+          input.market.outcomes[1] as (typeof input.market.outcomes)[number],
+        ],
+      },
+      transcript: [
+        {
+          segmentId: "33333333-3333-4333-8333-333333333333",
+          startMs: Date.parse("2026-11-14T20:02:00Z"),
+          speaker: null,
+          text: "we broke up last week and honestly I still miss her",
+        },
+      ],
+    });
+    expect(out.verdict).toBe("Yes");
+    expect(out.evidence[0]?.segmentId).toBe("33333333-3333-4333-8333-333333333333");
+  });
+
   it("mints a real transcription client secret", async () => {
     const t = await openaiSttTokens({ apiKey: key ?? "" }).mint();
     expect(t.token).toMatch(/^ek_/);
