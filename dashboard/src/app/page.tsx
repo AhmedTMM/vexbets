@@ -6,31 +6,32 @@ import { MarketsPanel } from "@/components/MarketsPanel";
 import { NewMarketForm } from "@/components/NewMarketForm";
 
 /**
- * The demo screen: the featured market full width (empty until one is opened or
- * picked), then every market, with the New market form folded away under them.
+ * The demo screen, everything visible at once: open markets as a watchlist on the left
+ * (with New market folded inside it), the selected market with its buy ticket on the right.
  */
 export default function Dashboard() {
   const [selected, setSelected] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
   return (
-    <div className="space-y-8">
+    <div className="grid items-start gap-6 min-[1100px]:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="min-[1100px]:sticky min-[1100px]:top-[88px]">
+        <MarketsPanel
+          selectedId={selected}
+          onSelect={setSelected}
+          creating={creating}
+          onToggleCreate={() => setCreating((c) => !c)}
+          form={
+            <NewMarketForm
+              onCreated={(m) => {
+                setSelected(m.id);
+                setCreating(false);
+              }}
+            />
+          }
+        />
+      </div>
       <FeaturedMarket marketId={selected} />
-      <MarketsPanel
-        selectedId={selected}
-        onSelect={setSelected}
-        creating={creating}
-        onToggleCreate={() => setCreating((c) => !c)}
-        form={
-          <NewMarketForm
-            onCreated={(m) => {
-              setSelected(m.id);
-              setCreating(false);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-          />
-        }
-      />
     </div>
   );
 }

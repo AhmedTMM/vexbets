@@ -16,19 +16,16 @@ function Prices({ yes, change }: { yes: number; change: number }) {
     <div className="flex items-end gap-8">
       <div>
         <div className="label">Yes</div>
-        <Flash value={yes} className="num font-semibold text-[44px] text-yes leading-none tracking-tight">
+        <Flash value={yes} className="display text-[68px] text-yes">
           {cents(yes)}
         </Flash>
-        <span className={`num ml-2 text-sm ${change >= 0 ? "text-yes" : "text-no"}`}>
+        <span className={`display ml-2 text-xl ${change >= 0 ? "text-yes" : "text-no"}`}>
           {change >= 0 ? "▲" : "▼"} {Math.abs(Math.round(change))}¢
         </span>
       </div>
       <div>
         <div className="label">No</div>
-        <Flash
-          value={100 - yes}
-          className="num font-semibold text-[44px] text-no leading-none tracking-tight"
-        >
+        <Flash value={100 - yes} className="display text-[68px] text-no">
           {cents(100 - yes)}
         </Flash>
       </div>
@@ -44,7 +41,7 @@ function NoMarket() {
   return (
     <section className="panel flex min-h-[200px] flex-col items-center justify-center gap-2 p-6 text-center">
       <h2 className="font-semibold text-xl tracking-tight">No market open</h2>
-      <p className="text-muted text-sm">Pick one below, or press + New market to start one.</p>
+      <p className="text-muted text-sm">Pick one in the watchlist, or open a new one there.</p>
     </section>
   );
 }
@@ -87,19 +84,19 @@ function LiveMarket({ marketId }: { marketId: string }) {
         <div className="flex items-center gap-3">
           {open && (
             <span className={`num text-sm ${urgent ? "font-semibold text-no" : "text-muted"}`}>
-              ⏱ {timeLeft(m.closesAt, now)}
+              closes in {timeLeft(m.closesAt, now)}
             </span>
           )}
           <StatusBadge market={m} />
         </div>
       </div>
-      <h2 className="mt-2 font-semibold text-3xl tracking-tight">{m.question}</h2>
+      <h2 className="mt-2 font-semibold text-[28px] leading-tight tracking-[-0.01em]">{m.question}</h2>
 
-      <div className="mt-6 grid gap-8 min-[1200px]:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="mt-6 grid gap-8 min-[1280px]:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
           <Prices yes={yes} change={yesChange(pts)} />
           <div className="mt-5">
-            <PriceChart points={pts} height={360} />
+            <PriceChart points={pts} height={290} />
           </div>
           {r && (
             <div className="mt-4 rounded-xl border border-line bg-raised p-4 text-sm">
