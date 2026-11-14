@@ -3,6 +3,7 @@ import {
   type EndpointName,
   type Endpoints,
   endpoints,
+  Id,
   type ResponseOf,
 } from "@vexbets/contract";
 import type { z } from "zod";
@@ -90,6 +91,10 @@ export function createApi(deps: Deps, handlers: Handlers) {
 
         const ep = endpoints[route.name];
         const params = Object.fromEntries(route.keys.map((k, i) => [k, decodeURIComponent(m[i + 1] ?? "")]));
+        for (const [k, v] of Object.entries(params)) {
+          if (k.endsWith("Id") && !Id.safeParse(v).success)
+            throw new ContractError("not_found", `no such ${k}`);
+        }
 
         let query: unknown;
         if (ep.query) {
