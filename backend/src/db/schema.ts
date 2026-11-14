@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -93,4 +94,50 @@ export const outcomes = pgTable(
     shares: integer("shares").notNull().default(0),
   },
   (t) => [uniqueIndex("outcomes_market_idx").on(t.marketId, t.idx)],
+);
+
+export const trades = pgTable(
+  "trades",
+  {
+    id: uuid("id").primaryKey(),
+    /** Insertion order, for stable listing when two trades share a timestamp. */
+    seq: bigserial("seq", { mode: "number" }).notNull(),
+    marketId: uuid("market_id")
+      .notNull()
+      .references(() => markets.id),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    outcomeId: uuid("outcome_id")
+      .notNull()
+      .references(() => outcomes.id),
+    side: text("side", { enum: ["buy", "sell"] }).notNull(),
+    shares: integer("shares").notNull(),
+    credits: integer("credits").notNull(),
+    priceAfterBps: jsonb("price_after_bps").$type<number[]>().notNull(),
+    idempotencyKey: uuid("idempotency_key").notNull(),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("trades_idempotency_idx").on(t.userId, t.idempotencyKey),
+    index("trades_market_idx").on(t.marketId, t.seq),
+  ],
+);
+
+export const positions = pgTable(
+  "positions",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    marketId: uuid("market_id")
+      .notNull()
+      .references(() => markets.id),
+    outcomeId: uuid("outcome_id")
+      .notNull()
+      .references(() => outcomes.id),
+    shares: integer("shares").notNull(),
+    costBasis: integer("cost_basis").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.outcomeId] }), index("positions_market_idx").on(t.marketId)],
 );
