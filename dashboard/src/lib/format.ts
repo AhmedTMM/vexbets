@@ -1,4 +1,9 @@
-export const credits = (n: number) => `${Math.round(n).toLocaleString("en-US")} cr`;
+/**
+ * Money is shown in dollars. The contract counts whole credits and a winning share pays
+ * SHARE_PAYOUT = 100 credits, so 1 credit = 1¢ and a winning share pays $1.
+ */
+export const credits = (n: number) =>
+  `$${(Math.round(n) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export const signedCredits = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${credits(Math.abs(n))}`;
 

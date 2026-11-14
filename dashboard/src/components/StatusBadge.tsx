@@ -1,22 +1,32 @@
 import type { Market } from "@vexbets/contract";
 import { yesNo } from "@/lib/market";
 
+function Pill({ tone, children }: { tone: string; children: string }) {
+  return (
+    <span
+      className={`inline-flex h-6 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 font-medium text-xs ${tone}`}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+      {children}
+    </span>
+  );
+}
+
 export function StatusBadge({ market }: { market: Market }) {
-  const base = "rounded-full px-2.5 py-0.5 text-xs";
   switch (market.status) {
     case "open":
-      return <span className={`${base} bg-sky-500/15 text-sky-300`}>Open</span>;
+      return <Pill tone="border-accent/25 bg-accent/10 text-accent">Open</Pill>;
     case "closed":
-      return <span className={`${base} bg-white/10 text-white/70`}>Closed · judging</span>;
+      return <Pill tone="border-line-strong bg-raised text-muted">Closed · judging</Pill>;
     case "voided":
-      return <span className={`${base} bg-white/10 text-white/50`}>Voided · refunded</span>;
+      return <Pill tone="border-line-strong bg-raised text-muted">Voided · refunded</Pill>;
     case "resolved": {
       const yn = yesNo(market);
       const yes = yn && market.resolution?.outcomeId === yn.yes.id;
       return yes ? (
-        <span className={`${base} bg-emerald-500/15 text-emerald-300`}>Settled YES</span>
+        <Pill tone="border-yes/25 bg-yes/10 text-yes">Settled YES</Pill>
       ) : (
-        <span className={`${base} bg-rose-500/15 text-rose-300`}>Settled NO</span>
+        <Pill tone="border-no/25 bg-no/10 text-no">Settled NO</Pill>
       );
     }
   }

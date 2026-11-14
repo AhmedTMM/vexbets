@@ -9,6 +9,7 @@ const backend = process.env.BACKEND_URL?.replace(/\/$/, "");
 
 const config: NextConfig = {
   transpilePackages: ["@vexbets/contract"],
+  devIndicators: false,
   async rewrites() {
     return backend ? [{ source: "/api/v1/:path*", destination: `${backend}/api/v1/:path*` }] : [];
   },

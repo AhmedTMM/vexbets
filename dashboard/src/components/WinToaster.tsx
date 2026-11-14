@@ -75,11 +75,11 @@ export function WinToaster({ meId }: { meId: string }) {
           href={`/markets/${t.marketId}`}
           onClick={() => setToasts((all) => all.filter((x) => x.id !== t.id))}
           className={`toast-in w-full max-w-md rounded-2xl border p-5 shadow-2xl ${
-            t.won ? "border-emerald-400/60 bg-emerald-950" : "border-white/15 bg-zinc-900"
+            t.won ? "border-yes bg-surface" : "border-line-strong bg-surface"
           }`}
         >
           <div className="text-2xl font-semibold">{t.title}</div>
-          <div className="mt-1 text-sm text-white/70">{t.body}</div>
+          <div className="mt-1 text-sm text-muted">{t.body}</div>
         </Link>
       ))}
     </div>

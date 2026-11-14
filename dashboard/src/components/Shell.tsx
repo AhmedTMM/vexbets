@@ -6,14 +6,40 @@ import { type ReactNode, useState } from "react";
 import { API_MODE, refreshAll } from "@/lib/api";
 import { credits } from "@/lib/format";
 import { useMe } from "@/lib/hooks";
+import { ListenerProvider } from "@/lib/listener";
 import { setEmail } from "@/lib/session";
 import { WinToaster } from "./WinToaster";
 
-const NAV = [
-  { href: "/", label: "Markets" },
-  { href: "/markets/new", label: "New market" },
+/** The mark: the Vexo three-triangle logo, with a poker chip in the bottom corner. */
+function Mark({ size = 44 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
+      {/* Vexo tile: cream with three rounded black triangles. */}
+      <rect x="0" y="0" width="40" height="40" rx="10" fill="#f1efea" />
+      <g fill="#111" stroke="#111" strokeWidth="3.6" strokeLinejoin="round">
+        <path d="M20 9.5 L25.2 18 L14.8 18 Z" />
+        <path d="M13 21.5 L18.2 30 L7.8 30 Z" />
+        <path d="M27 21.5 L32.2 30 L21.8 30 Z" />
+      </g>
+      {/* Poker chip: green, with a white edge ring and centre. */}
+      <circle cx="38.5" cy="38.5" r="9" fill="#00d394" stroke="#0b0c0e" strokeWidth="2.5" />
+      <circle
+        cx="38.5"
+        cy="38.5"
+        r="6.6"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="2.2"
+        strokeDasharray="3.4 3.5"
+      />
+      <circle cx="38.5" cy="38.5" r="3.6" fill="#00d394" stroke="#fff" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+const PAGES = [
+  { href: "/", label: "Dashboard" },
   { href: "/portfolio", label: "Portfolio" },
-  { href: "/listen", label: "Listen" },
 ];
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -24,55 +50,84 @@ export function Shell({ children }: { children: ReactNode }) {
   if (!me) return <SignIn problem={error?.message} />;
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0b0f14]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <Link href="/" className="font-semibold tracking-wide">
-            <span className="text-sky-400">VEX</span>BETS
-          </Link>
-          <nav className="flex flex-wrap gap-1 text-sm">
-            {NAV.map((n) => {
-              const active = n.href === "/" ? path === "/" : path.startsWith(n.href);
-              return (
-                <Link
-                  key={n.href}
-                  href={n.href}
-                  className={`rounded-md px-3 py-1.5 ${active ? "bg-white/10 text-white" : "text-white/60 hover:text-white"}`}
-                >
-                  {n.label}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="ml-auto flex items-center gap-3 text-sm">
-            {API_MODE === "mock" && (
-              <span
-                title="Running on the in-browser stand-in backend"
-                className="rounded bg-amber-400/15 px-2 py-0.5 text-xs text-amber-300"
-              >
-                mock
+    <ListenerProvider>
+      <div className="min-h-dvh min-[1100px]:grid min-[1100px]:grid-cols-[260px_minmax(0,1fr)]">
+        <aside className="border-line border-b bg-[#0b0c0e] min-[1100px]:sticky min-[1100px]:top-0 min-[1100px]:h-dvh min-[1100px]:border-r min-[1100px]:border-b-0">
+          <div className="scroll-y flex h-full flex-col gap-6 p-6">
+            <Link href="/" className="flex items-center gap-3 rounded-lg">
+              <Mark />
+              <span className="font-bold text-xl tracking-[0.04em]">
+                <span className="text-yes">VEX</span>BETS
               </span>
-            )}
-            <span className="text-white/60">@{me.handle}</span>
-            <span className="rounded-md bg-emerald-500/15 px-2 py-1 font-mono text-emerald-300">
-              {credits(me.balance)}
-            </span>
-            <button type="button" onClick={() => setEmail(null)} className="text-white/40 hover:text-white">
-              Switch
-            </button>
+            </Link>
+
+            <nav className="flex gap-1 rounded-full border border-line bg-surface p-1" aria-label="Pages">
+              {PAGES.map((p) => {
+                const active = p.href === "/" ? path === "/" : path.startsWith(p.href);
+                return (
+                  <Link
+                    key={p.href}
+                    href={p.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex h-9 flex-1 items-center justify-center rounded-full text-sm transition-colors duration-150 ${active ? "bg-raised font-bold text-ink" : "font-medium text-muted hover:text-ink"}`}
+                  >
+                    {p.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="panel space-y-3 p-4">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">@{me.handle}</span>
+                <button
+                  type="button"
+                  onClick={() => setEmail(null)}
+                  className="rounded-md px-1.5 text-muted text-sm transition-colors duration-150 hover:text-ink"
+                >
+                  Switch
+                </button>
+              </div>
+              <div>
+                <div className="label">Balance</div>
+                <div className="num font-semibold text-2xl tracking-tight">{credits(me.balance)}</div>
+              </div>
+            </div>
           </div>
+        </aside>
+
+        <div className="min-w-0">
+          <main className="mx-auto max-w-[1500px] space-y-6 p-6 min-[1100px]:p-10">
+            <header className="panel flex flex-wrap items-center justify-between gap-4 px-6 py-5">
+              <div>
+                <h1 className="font-bold text-3xl tracking-[0.02em]">VEXBETS</h1>
+                <p className="meta mt-1">
+                  prediction markets on what your friends say · settled by a Vexo band
+                </p>
+              </div>
+              <span
+                className={`num inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] ${API_MODE === "mock" ? "border-mock/30 bg-mock/10 text-mock" : "border-line bg-surface text-ink"}`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 rounded-full ${API_MODE === "mock" ? "bg-mock" : "bg-yes"}`}
+                />
+                {API_MODE === "mock" ? "mock backend · in this browser" : "backend connected"}
+              </span>
+            </header>
+            {children}
+          </main>
         </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
-      <WinToaster meId={me.id} />
-    </div>
+        <WinToaster meId={me.id} />
+      </div>
+    </ListenerProvider>
   );
 }
 
 function SignIn({ problem }: { problem?: string }) {
   const [email, setValue] = useState("");
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="flex min-h-dvh items-center justify-center px-4">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -81,32 +136,30 @@ function SignIn({ problem }: { problem?: string }) {
             refreshAll();
           }
         }}
-        className="w-full max-w-sm space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6"
+        className="panel w-full max-w-sm space-y-5 p-8"
       >
-        <h1 className="text-2xl font-semibold">
-          <span className="text-sky-400">VEX</span>BETS
-        </h1>
-        <p className="text-sm text-white/60">
+        <div className="flex items-center gap-3">
+          <Mark />
+          <span className="font-bold text-2xl tracking-[0.04em]">VEXBETS</span>
+        </div>
+        <p className="text-muted text-sm leading-relaxed">
           Trade YES and NO shares on what your friends will say. A Vexo band listens and settles the market.
-          New players get 10,000 play credits.
+          New players get $100 of play money.
         </p>
-        <label className="block space-y-1.5">
-          <span className="text-sm text-white/70">Email</span>
+        <label className="block">
+          <span className="label mb-1.5 block">Email</span>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setValue(e.target.value)}
             placeholder="you@example.com"
-            className="w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 outline-none focus:border-sky-400"
+            className="field"
           />
         </label>
-        <p className="text-xs text-white/40">No password: this is a play-money demo.</p>
-        {problem && <p className="text-sm text-rose-400">{problem}</p>}
-        <button
-          type="submit"
-          className="w-full rounded-lg bg-sky-500 py-2 font-medium text-black hover:bg-sky-400"
-        >
+        <p className="meta">no password · play-money demo</p>
+        {problem && <p className="text-no text-sm">{problem}</p>}
+        <button type="submit" className="btn btn-primary h-11 w-full">
           Start trading
         </button>
       </form>

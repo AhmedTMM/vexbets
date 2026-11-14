@@ -500,7 +500,7 @@ export async function mockFetch(input: RequestInfo | URL, init?: RequestInit): P
   const auth = (headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
 
   // Feels like a network call, and lets the UI show its busy states.
-  await new Promise((r) => setTimeout(r, 120));
+  if (process.env.NODE_ENV !== "test") await new Promise((r) => setTimeout(r, 120));
 
   const s = load();
   try {
