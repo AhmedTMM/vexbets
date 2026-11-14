@@ -2,7 +2,7 @@
 
 Prediction markets on what your friends say. Someone wears a Vexo band, you open a
 market ("Will Sam say 'no cap' before midnight?"), friends trade Yes/No like on Kalshi, the
-band's microphone is transcribed, and a Gemini judge resolves the market by quoting the
+band's microphone is transcribed, and an OpenAI judge resolves the market by quoting the
 transcript lines that prove it.
 
 | Folder                     | What                                                         | Owner     |

@@ -24,7 +24,7 @@ describe("CreateMarketRequest", () => {
   it("accepts a normal yes/no market and fills defaults", () => {
     const m = CreateMarketRequest.parse(base);
     expect(m.resolveEarly).toBe(true);
-    expect(m.liquidityB).toBe(100);
+    expect(m.liquidityB).toBe(30);
   });
 
   it("rejects duplicate labels, a bad fallback, a reserved label and a backwards window", () => {
@@ -67,7 +67,7 @@ describe("resolution", () => {
       status: "decided",
       marketId: crypto.randomUUID(),
       outcomeId: crypto.randomUUID(),
-      model: "gemini",
+      model: "gpt-6.1-terra",
       confidence: 0.9,
       rationale: "heard it",
       headHash: "a".repeat(64),

@@ -1,0 +1,6 @@
+# One line per final transcript segment. Optional speaker prefix: "[1] text".
+[0] ok what are we getting to eat
+[1] I could go for pizza honestly
+[0] the place on fifth or the new one
+[1] the new one, their crust is fire no cap
+[0] bet let's go
