@@ -177,7 +177,12 @@ form.addEventListener("submit", async (e) => {
             },
           });
         }
-        // The backend runs fake STT (no OpenAI key): play a scripted conversation.
+        if (token.provider !== "fake") {
+          throw new Error(
+            `this page only speaks OpenAI speech-to-text; the backend serves "${token.provider}". Use the dashboard's Listen bar.`,
+          );
+        }
+        // The backend runs fake STT (no key): play a scripted conversation.
         return scriptedStt([
           { text: "ok what are we getting to eat", afterMs: 1500 },
           { text: "the new place, their crust is fire no cap", afterMs: 2500 },

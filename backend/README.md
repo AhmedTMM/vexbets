@@ -86,15 +86,16 @@ prove, with credits conserved.
 2. Storage → add **Neon** Postgres. It sets `DATABASE_URL`.
 3. Environment variables:
 
-   | Name                      | What                                                           |
-   | ------------------------- | -------------------------------------------------------------- |
-   | `DATABASE_URL`            | Neon connection string (set by step 2)                         |
-   | `OPENAI_API_KEY`          | Judge and live STT. Without it: keyword judge, fake STT        |
-   | `OPENAI_JUDGE_MODEL`      | Optional. `gpt-6.1-terra` (default); `gpt-6-luna` ~10x cheaper |
-   | `OPENAI_REASONING_EFFORT` | Optional. `none`, `low` (default), `medium`, `high`            |
-   | `OPENAI_STT_MODEL`        | Optional. `gpt-live-transcribe` (default)                      |
-   | `STT_PROVIDER`            | Optional. `openai`, `deepgram` (+ `DEEPGRAM_API_KEY`), `fake`  |
-   | `CRON_SECRET`             | Any random string; protects `/api/cron/tick`                   |
+   | Name                      | What                                                                         |
+   | ------------------------- | ---------------------------------------------------------------------------- |
+   | `DATABASE_URL`            | Neon connection string (set by step 2)                                       |
+   | `OPENAI_API_KEY`          | The judge (and STT when there is no Deepgram key). Without it: keyword judge |
+   | `OPENAI_JUDGE_MODEL`      | Optional. `gpt-6.1-terra` (default); `gpt-6-luna` ~10x cheaper               |
+   | `OPENAI_REASONING_EFFORT` | Optional. `none`, `low` (default), `medium`, `high`                          |
+   | `OPENAI_STT_MODEL`        | Optional. `gpt-live-transcribe` (default)                                    |
+   | `DEEPGRAM_API_KEY`        | Live STT, preferred when set: short-lived Deepgram tokens for the Listen bar |
+   | `STT_PROVIDER`            | Optional override: `deepgram`, `openai` or `fake`                            |
+   | `CRON_SECRET`             | Any random string; protects `/api/cron/tick`                                 |
 
 4. Deploy. `vercel-build` applies migrations, then builds.
 5. Check: `curl https://<app>.vercel.app/api/health`, then run `scripts/replay.ts --url ...`.

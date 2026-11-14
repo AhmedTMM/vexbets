@@ -39,8 +39,10 @@ function pickJudge(): Judge {
 
 function pickStt(): SttTokens | undefined {
   const openaiKey = process.env.OPENAI_API_KEY;
+  // Deepgram first when its key is set (nova-3 on the band's raw Opus, tuned on band
+  // recordings), then OpenAI, then fake. STT_PROVIDER overrides.
   const provider =
-    process.env.STT_PROVIDER ?? (openaiKey ? "openai" : process.env.DEEPGRAM_API_KEY ? "deepgram" : "fake");
+    process.env.STT_PROVIDER ?? (process.env.DEEPGRAM_API_KEY ? "deepgram" : openaiKey ? "openai" : "fake");
   if (provider === "fake") return fakeSttTokens;
   if (provider === "openai" && openaiKey) {
     return openaiSttTokens({ apiKey: openaiKey, model: process.env.OPENAI_STT_MODEL || undefined });
