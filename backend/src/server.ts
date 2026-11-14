@@ -5,6 +5,7 @@ import { type Api, createApi } from "./http";
 import { keywordJudge } from "./judge/fake";
 import { geminiJudge } from "./judge/gemini";
 import type { Judge } from "./judge/types";
+import { deepgramTokens } from "./stt/deepgram";
 
 /**
  * The process-wide server used by the Next.js routes.
@@ -33,6 +34,7 @@ export function getServer() {
       now: () => new Date(),
       log: { error: (err) => console.error(err) },
       judge: pickJudge(),
+      stt: process.env.DEEPGRAM_API_KEY ? deepgramTokens(process.env.DEEPGRAM_API_KEY) : undefined,
       config: defaultConfig,
     };
     return { api: createApi(deps, handlers), deps, database };

@@ -230,3 +230,22 @@ export async function getProof(deps: Deps, marketId: string): Promise<ProofBundl
     })),
   };
 }
+
+const lastClose = new WeakMap<Deps, number>();
+
+/**
+ * Close due markets on the way into a request, at most once per closeEveryMs. The dashboard
+ * polls, so markets close within seconds of closesAt without a frequent cron (Vercel's free
+ * plan only runs crons daily; /api/cron/tick is the backstop).
+ */
+export async function maybeCloseDue(deps: Deps): Promise<void> {
+  const now = deps.now().getTime();
+  const last = lastClose.get(deps);
+  if (last !== undefined && now - last < deps.config.closeEveryMs) return;
+  lastClose.set(deps, now);
+  try {
+    await closeDueMarkets(deps);
+  } catch (err) {
+    deps.log.error(err);
+  }
+}
