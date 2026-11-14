@@ -94,7 +94,7 @@ describe("a market that resolves early on proof", () => {
     // Money: Alice won 100 a share, Bob lost his stake, the creator got the escrow's remainder.
     expect((await alice("getMe")).balance).toBe(10_000 - a.trade.credits + 30 * SHARE_PAYOUT);
     expect((await bob("getMe")).balance).toBe(10_000 - bo.trade.credits);
-    const subsidy = lmsr.maxSubsidy(100, 2);
+    const subsidy = lmsr.maxSubsidy(market.liquidityB, 2);
     const creatorGets = subsidy + a.trade.credits + bo.trade.credits - 30 * SHARE_PAYOUT;
     expect((await creator("getMe")).balance).toBe(10_000 - subsidy + creatorGets);
     await expectConserved(b);

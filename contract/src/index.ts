@@ -3,6 +3,7 @@ export * from "./common";
 export * from "./errors";
 export * from "./evidence";
 export * from "./ingest";
+export * from "./listener";
 export * as lmsr from "./lmsr";
 export { SHARE_PAYOUT } from "./lmsr";
 export * from "./markets";

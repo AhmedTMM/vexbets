@@ -11,7 +11,9 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
-    "vercel-build": "tsx scripts/migrate.ts && next build"
+    "vercel-build": "tsx scripts/migrate.ts && next build",
+    "e2e": "next build && vitest run -c vitest.e2e.config.ts",
+    "e2e:only": "vitest run -c vitest.e2e.config.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
