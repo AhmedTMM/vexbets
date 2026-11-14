@@ -117,7 +117,7 @@ export function PriceChart({
           formatter={(v, name) => [`${Math.round(v as number)}¢`, String(name).toUpperCase()]}
         />
         <Line
-          type="stepAfter"
+          type="monotone"
           dataKey="no"
           stroke={NO}
           strokeWidth={2.5}
@@ -126,7 +126,7 @@ export function PriceChart({
           isAnimationActive={false}
         />
         <Line
-          type="stepAfter"
+          type="monotone"
           dataKey="yes"
           stroke={YES}
           strokeWidth={2.5}
@@ -156,7 +156,7 @@ export function Sparkline({ points, height = 56 }: { points: PricePoint[]; heigh
         <XAxis dataKey="t" type="number" domain={["dataMin", "dataMax"]} hide />
         <YAxis domain={[0, 100]} hide />
         <Area
-          type="stepAfter"
+          type="monotone"
           dataKey="yes"
           stroke={color}
           strokeWidth={2}
