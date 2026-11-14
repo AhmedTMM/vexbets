@@ -1,5 +1,6 @@
-import { type CreateMarketRequest, lmsr } from "@vexbets/contract";
+import { lmsr } from "@vexbets/contract";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { yesNo } from "./fixtures";
 import { type Backend, startBackend } from "./harness";
 
 let b: Backend;
@@ -7,22 +8,6 @@ beforeAll(async () => {
   b = await startBackend();
 });
 afterAll(() => b.close());
-
-const BAND = 7; // test-only; the real band number lives in the listener, not the backend
-
-export function yesNo(patch: Partial<CreateMarketRequest> = {}): CreateMarketRequest {
-  return {
-    question: "Will Sam say 'no cap' before midnight?",
-    tagline: "Sam vs. his favourite phrase",
-    criteria: "Anyone near the band says the words 'no cap'.",
-    outcomes: [{ label: "Yes" }, { label: "No" }],
-    fallbackOutcomeIndex: 1,
-    bandNumber: BAND,
-    subjectName: "Sam",
-    closesAt: "2026-11-15T00:00:00.000Z",
-    ...patch,
-  };
-}
 
 describe("me", () => {
   it("creates a user on first sight with 10,000 credits", async () => {
