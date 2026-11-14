@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@heroui/react";
 import { type Market, type ProofResult, type TranscriptSegment, verifyProof } from "@vexbets/contract";
 import { useState } from "react";
 import { api } from "@/lib/api";
@@ -63,14 +64,9 @@ export function ResolutionPanel({ market, yn, meId }: { market: Market; yn: YesN
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={verify}
-          disabled={busy}
-          className="rounded-lg border border-line-strong px-3 py-1.5 text-sm hover:bg-raised disabled:opacity-50"
-        >
+        <Button size="sm" variant="outline" isPending={busy} onPress={() => void verify()}>
           {busy ? "Checking…" : "Verify proof"}
-        </button>
+        </Button>
         {check?.ok && <span className="text-sm text-yes">✓ Transcript chain and quotes check out</span>}
         {check && !check.ok && <span className="text-sm text-no">✗ {check.problems.join("; ")}</span>}
         {err && <span className="text-sm text-no">{err}</span>}

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Input, Label, TextField, ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import { lmsr, type Market, SHARE_PAYOUT } from "@vexbets/contract";
 import { useState } from "react";
 import { bpsCents, credits, errorText } from "@/lib/format";
@@ -52,51 +53,55 @@ export function TradeTicket({ market, yn, balance }: { market: Market; yn: YesNo
   return (
     <div className="rounded-2xl border border-line bg-raised/60 p-4">
       <div className="label mb-3">Buy</div>
-      <div className="grid grid-cols-2 gap-2">
+      <ToggleButtonGroup
+        aria-label="Side"
+        selectionMode="single"
+        disallowEmptySelection
+        selectedKeys={[side]}
+        onSelectionChange={(keys) => {
+          const k = [...keys][0];
+          if (k === "YES" || k === "NO") setSide(k);
+        }}
+        className="grid w-full grid-cols-2 gap-2"
+      >
         {(["YES", "NO"] as const).map((s) => {
           const o = outcomeFor(yn, s);
-          const active = side === s;
           const tone =
             s === "YES"
-              ? active
-                ? "border-yes bg-yes/15 text-yes"
-                : "border-yes/30 text-yes/80 hover:bg-yes/10"
-              : active
-                ? "border-no bg-no/15 text-no"
-                : "border-no/30 text-no/80 hover:bg-no/10";
+              ? "border-yes/30 text-yes/80 data-[selected=true]:border-yes data-[selected=true]:bg-yes/15 data-[selected=true]:text-yes"
+              : "border-no/30 text-no/80 data-[selected=true]:border-no data-[selected=true]:bg-no/15 data-[selected=true]:text-no";
           return (
-            <button
-              type="button"
+            <ToggleButton
               key={s}
-              onClick={() => setSide(s)}
-              aria-pressed={active}
-              className={`num h-11 rounded-full border font-semibold transition-colors duration-150 ${tone}`}
+              id={s}
+              className={`num h-11 w-full rounded-full border bg-transparent font-semibold ${tone}`}
             >
               {s === "YES" ? "Yes" : "No"} {bpsCents(o.priceBps)}
-            </button>
+            </ToggleButton>
           );
         })}
-      </div>
+      </ToggleButtonGroup>
 
-      <label className="mt-4 block">
-        <span className="label mb-1.5 block">Shares</span>
-        <input
-          inputMode="numeric"
-          value={shares}
-          onChange={(e) => setShares(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          className="field num text-lg"
-        />
-      </label>
+      <TextField
+        className="mt-4"
+        value={shares}
+        onChange={(v) => setShares(v.replace(/\D/g, "").slice(0, 6))}
+        aria-label="Shares"
+      >
+        <Label className="label mb-1.5 block">Shares</Label>
+        <Input inputMode="numeric" className="num w-full text-lg" />
+      </TextField>
       <div className="mt-2 flex gap-1.5">
         {[10, 50, 100, 250].map((v) => (
-          <button
-            type="button"
+          <Button
             key={v}
-            onClick={() => setShares(String(v))}
-            className="num h-7 flex-1 rounded-full border border-line text-muted text-xs transition-colors duration-150 hover:border-line-strong hover:text-ink"
+            size="sm"
+            variant="tertiary"
+            onPress={() => setShares(String(v))}
+            className="num flex-1"
           >
             {v}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -110,14 +115,17 @@ export function TradeTicket({ market, yn, balance }: { market: Market; yn: YesNo
       )}
       {problem && <p className="mt-4 text-mock text-sm">{problem}</p>}
 
-      <button
-        type="button"
-        disabled={!!problem || busy}
-        onClick={submit}
-        className="btn btn-primary mt-4 h-11 w-full text-[15px]"
+      <Button
+        size="lg"
+        fullWidth
+        variant={side === "YES" ? "primary" : "danger"}
+        isDisabled={!!problem}
+        isPending={busy}
+        onPress={() => void submit()}
+        className="mt-4"
       >
         {busy ? "Placing…" : `Buy ${n >= 1 ? n : ""} ${side}`}
-      </button>
+      </Button>
       {msg && <p className={`mt-2 text-sm ${msg.ok ? "text-yes" : "text-no"}`}>{msg.text}</p>}
       <p className="meta mt-3">
         each share pays {credits(SHARE_PAYOUT)} if its side wins · sell from your holdings

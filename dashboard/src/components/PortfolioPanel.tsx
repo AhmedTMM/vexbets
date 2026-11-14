@@ -1,5 +1,6 @@
 "use client";
 
+import { ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import type { Market, Position, Trade } from "@vexbets/contract";
 import Link from "next/link";
 import { useState } from "react";
@@ -120,20 +121,25 @@ export function PortfolioPanel() {
       <section className="panel overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-line border-b px-5 py-4">
           <h2 className="font-semibold text-xl">Predictions</h2>
-          <div className="flex gap-1 rounded-full border border-line bg-bg p-1" role="tablist">
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.id}
-                onClick={() => setTab(t.id)}
-                className={`h-8 rounded-full px-4 text-sm transition-colors duration-150 ${tab === t.id ? "bg-raised font-bold text-ink" : "text-muted hover:text-ink"}`}
-              >
+          <ToggleButtonGroup
+            aria-label="Show"
+            size="sm"
+            selectionMode="single"
+            disallowEmptySelection
+            selectedKeys={[tab]}
+            onSelectionChange={(keys) => {
+              const k = [...keys][0];
+              const t = tabs.find((x) => x.id === k);
+              if (t) setTab(t.id);
+            }}
+          >
+            {tabs.map((t, i) => (
+              <ToggleButton key={t.id} id={t.id}>
+                {i > 0 && <ToggleButtonGroup.Separator />}
                 {t.label} <span className="num">({t.n})</span>
-              </button>
+              </ToggleButton>
             ))}
-          </div>
+          </ToggleButtonGroup>
         </div>
 
         <div className="overflow-x-auto">
