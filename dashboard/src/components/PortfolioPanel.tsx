@@ -103,8 +103,8 @@ export function PortfolioPanel() {
     <div className="space-y-6">
       <section className="panel p-6">
         <div className="label">Total balance</div>
-        <div className="num mt-1 font-bold text-[52px] leading-none tracking-tight">{credits(total)}</div>
-        <div className={`num mt-2 font-semibold text-lg ${change >= 0 ? "text-yes" : "text-no"}`}>
+        <div className="display mt-2 text-[80px]">{credits(total)}</div>
+        <div className={`display mt-2 text-[26px] ${change >= 0 ? "text-yes" : "text-no"}`}>
           {signedCredits(change)} ({change >= 0 ? "+" : "−"}
           {Math.abs(pct).toFixed(1)}%)
         </div>

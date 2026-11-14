@@ -67,7 +67,9 @@ export default function MarketPage() {
         </div>
         <div className="text-right">
           <StatusBadge market={m} />
-          {m.status === "open" && <div className="mt-2 num text-lg">⏱ {timeLeft(m.closesAt, now)}</div>}
+          {m.status === "open" && (
+            <div className="display mt-2 text-2xl">closes in {timeLeft(m.closesAt, now)}</div>
+          )}
           <div className="mt-1 text-xs text-muted">
             by @{m.creator.handle} · vol {credits(m.volumeCredits)}
           </div>

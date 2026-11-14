@@ -35,10 +35,13 @@ export function MarketsPanel({
   const done = data?.filter((m) => m.status !== "open") ?? [];
 
   return (
-    <section aria-label="Markets" className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+    <section
+      aria-label="Markets"
+      className="panel flex flex-col overflow-hidden min-[1100px]:max-h-[calc(100dvh-112px)]"
+    >
+      <div className="flex items-center justify-between gap-3 border-line border-b px-4 py-3.5">
         <h2 className="flex items-baseline gap-2">
-          <span className="font-semibold text-xl">Open markets</span>
+          <span className="font-semibold text-[17px]">Open markets</span>
           <span className="meta">{open.length}</span>
         </h2>
         <button
@@ -46,53 +49,56 @@ export function MarketsPanel({
           onClick={onToggleCreate}
           aria-expanded={creating}
           aria-controls="new-market"
-          className={`btn h-9 ${creating ? "btn-ghost" : "btn-primary"}`}
+          className={`btn h-8 px-3 text-[13px] ${creating ? "btn-ghost" : "btn-primary"}`}
         >
           {creating ? "Close" : "+ New market"}
         </button>
       </div>
-      {creating && (
-        <div id="new-market" className="panel fade-in p-6">
-          <h3 className="mb-4 font-semibold text-lg">New market</h3>
-          {form}
-        </div>
-      )}
-      {error && !data && <p className="text-no text-sm">Could not load markets: {error.message}</p>}
-      {data && open.length === 0 && !creating && (
-        <p className="panel border-dashed px-5 py-6 text-muted text-sm">
-          No open markets yet. Press New market to start one.
-        </p>
-      )}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3">
-        {open.map((m) => (
-          <MarketCard key={m.id} m={m} now={now} selected={m.id === selectedId} onSelect={onSelect} />
-        ))}
-      </div>
 
-      {done.length > 0 && (
-        <>
-          <h2 className="label pt-3">Settled</h2>
-          <div className="panel divide-y divide-line overflow-hidden">
-            {done.map((m) => (
-              <button
-                type="button"
-                key={m.id}
-                onClick={() => onSelect(m.id)}
-                aria-pressed={m.id === selectedId}
-                className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors duration-150 hover:bg-raised aria-pressed:bg-raised"
-              >
-                <span className="truncate">{m.question}</span>
-                <StatusBadge market={m} />
-              </button>
-            ))}
+      <div className="scroll-y min-h-0 flex-1">
+        {creating && (
+          <div id="new-market" className="fade-in border-line border-b bg-raised/40 p-4">
+            {form}
           </div>
-        </>
-      )}
+        )}
+        {error && !data && <p className="p-4 text-no text-sm">Could not load markets: {error.message}</p>}
+        {data && open.length === 0 && !creating && (
+          <p className="px-4 py-6 text-muted text-sm">No open markets yet. Press New market to start one.</p>
+        )}
+        <ul className="divide-y divide-line">
+          {open.map((m) => (
+            <li key={m.id}>
+              <MarketRow m={m} now={now} selected={m.id === selectedId} onSelect={onSelect} />
+            </li>
+          ))}
+        </ul>
+
+        {done.length > 0 && (
+          <>
+            <h3 className="label border-line border-y bg-bg/40 px-4 py-2">Settled</h3>
+            <ul className="divide-y divide-line">
+              {done.map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(m.id)}
+                    aria-pressed={m.id === selectedId}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors duration-150 hover:bg-raised aria-pressed:bg-raised"
+                  >
+                    <span className="truncate text-muted">{m.question}</span>
+                    <StatusBadge market={m} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
     </section>
   );
 }
 
-function MarketCard({
+function MarketRow({
   m,
   now,
   selected,
@@ -114,30 +120,21 @@ function MarketCard({
       type="button"
       onClick={() => onSelect(m.id)}
       aria-pressed={selected}
-      className={`panel flex flex-col gap-3 p-4 text-left transition-[border-color,box-shadow] duration-150 hover:border-line-strong ${selected ? "border-ink! shadow-[0_0_0_1px_var(--color-ink)]" : ""}`}
+      className={`relative flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors duration-150 hover:bg-raised ${selected ? "bg-raised" : ""}`}
     >
-      <span className="meta">
-        {m.subjectName} · #{m.bandNumber}
+      {selected && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-[3px] rounded-r bg-yes" />}
+      <span className="min-w-0 flex-1">
+        <span className="line-clamp-2 font-medium text-[15px] leading-snug">{m.question}</span>
+        <span className="meta mt-1 block">
+          {m.subjectName} · #{m.bandNumber} ·{" "}
+          <span className={urgent ? "font-medium text-no" : ""}>{timeLeft(m.closesAt, now)}</span>
+        </span>
       </span>
-      <span className="font-semibold leading-snug">{m.question}</span>
-      <span className="mt-auto flex items-end justify-between gap-3">
-        <span className="flex gap-4">
-          <span>
-            <span className="label block">Yes</span>
-            <Flash value={yes} className="num font-semibold text-xl text-yes">
-              {cents(yes)}
-            </Flash>
-          </span>
-          <span>
-            <span className="label block">No</span>
-            <Flash value={100 - yes} className="num font-semibold text-xl text-no">
-              {cents(100 - yes)}
-            </Flash>
-          </span>
-        </span>
-        <span className={`num text-sm ${urgent ? "font-semibold text-no" : "text-muted"}`}>
-          ⏱ {timeLeft(m.closesAt, now)}
-        </span>
+      <span className="shrink-0 text-right">
+        <Flash value={yes} className="display block text-[30px] text-yes">
+          {cents(yes)}
+        </Flash>
+        <span className="display block text-[15px] text-no">NO {cents(100 - yes)}</span>
       </span>
     </button>
   );

@@ -37,7 +37,7 @@ export function BandStrip({ market }: { market: Market }) {
             Listening to <span className="font-semibold">{friend.name}</span>
             <span className="meta"> · band #{market.bandNumber}</span>
           </span>
-          {l.status && <span className="meta hidden truncate xl:inline">· {l.status}</span>}
+          {l.status && <span className="meta hidden truncate min-[1700px]:inline">· {l.status}</span>}
         </div>
         <div className="flex items-center gap-2">
           <span className="meta">
