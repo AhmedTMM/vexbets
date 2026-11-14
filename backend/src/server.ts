@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { type Database, openDatabase } from "./db/client";
 import { type Deps, defaultConfig } from "./deps";
 import { handlers } from "./handlers";
@@ -66,9 +67,9 @@ export function getServer() {
       log: { error: (err) => console.error(err) },
       judge: pickJudge(),
       stt: pickStt(),
+      afterResponse: (task) => after(() => task().catch((err) => console.error(err))),
       config: {
         ...defaultConfig,
-        judgeEveryMs: intEnv("JUDGE_EVERY_MS", defaultConfig.judgeEveryMs),
         closeEveryMs: intEnv("CLOSE_EVERY_MS", defaultConfig.closeEveryMs),
       },
     };

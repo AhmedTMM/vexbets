@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "contract",
-    "backend"
+    "backend",
+    "vexo"
   ],
   "engines": {
     "node": ">=20"

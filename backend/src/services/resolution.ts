@@ -8,7 +8,7 @@ import {
   type Resolution,
   SHARE_PAYOUT,
 } from "@vexbets/contract";
-import { and, asc, eq, gt, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { listenSessions, markets, positions, segments } from "../db/schema";
 import type { Deps } from "../deps";
 import type { TranscriptLine } from "../judge/types";
@@ -139,15 +139,22 @@ async function settle(
   });
 }
 
+/** A judge run that has held a market this long is presumed dead (crashed function). */
+export const JUDGE_LEASE_MS = 60_000;
+
 /**
- * After new transcript arrives for a band: judge that band's open markets that resolve early,
- * each at most once per judgeEveryMs, with everything heard in its window as context.
+ * After new transcript arrives for a band: judge each of that band's open markets that
+ * resolve early, against everything heard in its window so far.
+ *
+ * Every batch is judged; none is skipped. At most one judge call runs per market: a batch
+ * that arrives while one is running marks the market `judge_pending`, and the running job
+ * goes round again as soon as it finishes, so the latest words are always judged next.
  */
 export async function judgeBand(deps: Deps, bandNumber: number): Promise<void> {
   const now = deps.now();
-  const due = await deps.db
-    .update(markets)
-    .set({ lastJudgedAt: now })
+  const open = await deps.db
+    .select({ id: markets.id })
+    .from(markets)
     .where(
       and(
         eq(markets.bandNumber, bandNumber),
@@ -155,23 +162,53 @@ export async function judgeBand(deps: Deps, bandNumber: number): Promise<void> {
         eq(markets.resolveEarly, true),
         lte(markets.opensAt, now),
         gt(markets.closesAt, now),
-        or(
-          isNull(markets.lastJudgedAt),
-          lte(markets.lastJudgedAt, new Date(now.getTime() - deps.config.judgeEveryMs)),
-        ),
+      ),
+    );
+  await Promise.all(open.map(({ id }) => judgeMarket(deps, id)));
+}
+
+async function judgeMarket(deps: Deps, id: string): Promise<void> {
+  const now = deps.now();
+  const [claimed] = await deps.db
+    .update(markets)
+    .set({ judgingSince: now, judgePending: false })
+    .where(
+      and(
+        eq(markets.id, id),
+        or(isNull(markets.judgingSince), lte(markets.judgingSince, new Date(now.getTime() - JUDGE_LEASE_MS))),
       ),
     )
     .returning({ id: markets.id });
+  if (!claimed) {
+    // Someone is judging this market right now: make sure they look again.
+    await deps.db.update(markets).set({ judgePending: true }).where(eq(markets.id, id));
+    return;
+  }
 
-  for (const { id } of due) {
+  for (;;) {
+    let settled = false;
     try {
       const m = await getMarket(deps, id);
+      if (m.status !== "open") break;
       const decision = await decide(deps, m, "early");
-      if (decision.status === "decided") await settle(deps, id, decision, "evidence");
+      await deps.db.update(markets).set({ lastJudgedAt: deps.now() }).where(eq(markets.id, id));
+      if (decision.status === "decided") settled = await settle(deps, id, decision, "evidence");
     } catch (err) {
       deps.log.error(err);
     }
+    if (settled) break;
+    // Release the lease, unless more transcript came in meanwhile: then keep it and go again.
+    const [again] = await deps.db
+      .update(markets)
+      .set({
+        judgingSince: sql`case when ${markets.judgePending} then ${deps.now().toISOString()}::timestamptz else null end`,
+        judgePending: false,
+      })
+      .where(eq(markets.id, id))
+      .returning({ judgingSince: markets.judgingSince });
+    if (!again?.judgingSince) return;
   }
+  await deps.db.update(markets).set({ judgingSince: null, judgePending: false }).where(eq(markets.id, id));
 }
 
 /** Close every open market whose window has ended, and resolve it from the full transcript. */

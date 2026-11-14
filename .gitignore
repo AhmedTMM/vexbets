@@ -9,3 +9,4 @@ coverage/
 *.tsbuildinfo
 .pglite/
 next-env.d.ts
+dist/

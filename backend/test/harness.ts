@@ -48,6 +48,7 @@ export async function startBackend(overrides: Partial<Omit<Deps, "db">> = {}) {
     log: { error: (err) => console.error(err) },
     judge: keywordJudge,
     stt: fakeStt,
+    afterResponse: (task) => task(),
     config: defaultConfig,
     ...overrides,
   };

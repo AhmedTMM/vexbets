@@ -5,8 +5,9 @@ export const DEFAULT_STT_MODEL = "gpt-live-transcribe";
 
 /**
  * OpenAI Realtime transcription: mint a short-lived client secret for a transcription-only
- * session. The listener opens WebRTC to https://api.openai.com/v1/realtime/calls with it
- * and persists `conversation.item.input_audio_transcription.completed` events.
+ * session. The listener opens wss://api.openai.com/v1/realtime?intent=transcription with it,
+ * appends 24 kHz PCM16, commits each spoken line (gpt-live-transcribe has no server VAD) and
+ * persists `conversation.item.input_audio_transcription.completed` events.
  * No speaker labels in Realtime, so segments carry speaker: null.
  */
 export function openaiSttTokens(opts: {
@@ -26,7 +27,7 @@ export function openaiSttTokens(opts: {
           type: "transcription",
           audio: {
             input: {
-              transcription: { model, language: "en" },
+              transcription: { model, languages: ["en"] },
               turn_detection: null,
             },
           },

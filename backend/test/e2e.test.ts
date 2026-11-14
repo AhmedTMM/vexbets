@@ -75,14 +75,9 @@ describe("a market that resolves early on proof", () => {
     await band.hear("ok what are we getting to eat");
     expect((await creator("getMarket", { params: { marketId: market.id } })).status).toBe("open");
 
-    // 2nd batch 5 s later: within 30 s of the last judging, so not judged yet.
-    b.advance(5_000);
+    // 2nd batch 1 s later: judged at once, with the whole window as context.
+    b.advance(1_000);
     await band.hear("the new place, their crust is fire no cap");
-    expect((await creator("getMarket", { params: { marketId: market.id } })).status).toBe("open");
-
-    // 3rd batch 30 s later: judged with the whole window as context, and "no cap" is in it.
-    b.advance(30_000);
-    await band.hear("bet let's go");
     const resolved = await creator("getMarket", { params: { marketId: market.id } });
     expect(resolved.status).toBe("resolved");
     expect(resolved.resolution?.via).toBe("evidence");

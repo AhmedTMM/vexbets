@@ -1,0 +1,21 @@
+{
+  "name": "@vexbets/vexo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The band side: Vexo band microphone -> live speech-to-text -> backend ingest.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vexbets/contract": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
+  }
+}
