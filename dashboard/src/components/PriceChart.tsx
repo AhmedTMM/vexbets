@@ -15,7 +15,8 @@ export function PriceChart({
   timeFormat = clock,
 }: {
   points: PricePoint[];
-  height?: number;
+  /** Pixels, or "100%" to fill a parent with a (responsive) height. */
+  height?: number | `${number}%`;
   timeFormat?: (t: number) => string;
 }) {
   return (

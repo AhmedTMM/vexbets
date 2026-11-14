@@ -13,10 +13,10 @@ import { priceHistory, yesCents, yesChange, yesNo } from "@/lib/market";
 
 function Prices({ yes, change }: { yes: number; change: number }) {
   return (
-    <div className="flex items-end gap-8">
+    <div className="flex items-end gap-6 sm:gap-8">
       <div>
         <div className="label">Yes</div>
-        <Flash value={yes} className="display text-[68px] text-yes">
+        <Flash value={yes} className="display text-[56px] text-yes sm:text-[68px]">
           {cents(yes)}
         </Flash>
         <span className={`display ml-2 text-xl ${change >= 0 ? "text-yes" : "text-no"}`}>
@@ -25,7 +25,7 @@ function Prices({ yes, change }: { yes: number; change: number }) {
       </div>
       <div>
         <div className="label">No</div>
-        <Flash value={100 - yes} className="display text-[68px] text-no">
+        <Flash value={100 - yes} className="display text-[56px] text-no sm:text-[68px]">
           {cents(100 - yes)}
         </Flash>
       </div>
@@ -76,8 +76,8 @@ function LiveMarket({ marketId }: { marketId: string }) {
   const r = m.resolution;
 
   return (
-    <section className="panel p-6" aria-label="Selected market">
-      <div className="flex items-center justify-between gap-3">
+    <section className="panel p-4 sm:p-6" aria-label="Selected market">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <span className="meta">
           {m.subjectName} · band #{m.bandNumber} · vol {credits(m.volumeCredits)}
         </span>
@@ -90,16 +90,20 @@ function LiveMarket({ marketId }: { marketId: string }) {
           <StatusBadge market={m} />
         </div>
       </div>
-      <h2 className="mt-2 font-semibold text-[28px] leading-tight tracking-[-0.01em]">{m.question}</h2>
+      <h2 className="mt-2 font-semibold text-[22px] leading-tight sm:text-[28px] tracking-[-0.01em]">
+        {m.question}
+      </h2>
 
-      <div className="mt-6 grid gap-8 min-[1280px]:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0">
+      {/* Phones: the left column dissolves (contents) so the buy ticket sits right under the
+          prices, with the chart and details after it. */}
+      <div className="mt-4 grid gap-4 sm:mt-6 sm:gap-8 min-[1280px]:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 max-sm:contents">
           <Prices yes={yes} change={yesChange(pts)} />
-          <div className="mt-5">
-            <PriceChart points={pts} height={290} />
+          <div className="mt-5 h-[220px] max-sm:order-2 max-sm:mt-0 sm:h-[290px]">
+            <PriceChart points={pts} height="100%" />
           </div>
           {r && (
-            <div className="mt-4 rounded-xl border border-line bg-raised p-4 text-sm">
+            <div className="mt-4 rounded-xl max-sm:order-2 max-sm:mt-0 border border-line bg-raised p-4 text-sm">
               <p>{r.decision.rationale}</p>
               {r.decision.evidence[0] && (
                 <p className="mt-1 text-muted italic">“{r.decision.evidence[0].quote}”</p>
@@ -108,12 +112,12 @@ function LiveMarket({ marketId }: { marketId: string }) {
           )}
           <Link
             href={`/markets/${m.id}`}
-            className="meta mt-3 inline-block underline-offset-4 hover:text-ink hover:underline"
+            className="meta mt-3 inline-block underline-offset-4 max-sm:order-2 max-sm:mt-0 max-sm:justify-self-start max-sm:py-2 hover:text-ink hover:underline"
           >
             Trades, proof and details
           </Link>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-3 max-sm:order-1">
           {open && <TradeTicket market={m} yn={yn} balance={me.balance} />}
           <Holdings market={m} yn={yn} positions={positions} />
         </div>

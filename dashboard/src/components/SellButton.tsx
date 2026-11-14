@@ -35,6 +35,7 @@ export function SellButton({
           size="sm"
           variant="outline"
           isDisabled={disabled || held < 1}
+          className="max-sm:h-10"
           onPress={() => {
             setN(String(held));
             setMsg(null);
@@ -70,12 +71,19 @@ export function SellButton({
         aria-label={`Shares of ${side} to sell (you hold ${held})`}
         value={n}
         onChange={(e) => setN(e.target.value.replace(/\D/g, "").slice(0, 6))}
-        className="num h-8 w-16 text-right text-xs"
+        className="num h-10 w-16 text-right text-base sm:h-8 sm:text-xs"
       />
-      <Button size="sm" variant="danger" isDisabled={!valid} isPending={busy} onPress={() => void sell()}>
+      <Button
+        size="sm"
+        variant="danger"
+        isDisabled={!valid}
+        isPending={busy}
+        onPress={() => void sell()}
+        className="max-sm:h-10"
+      >
         {`Sell ${valid ? count : ""}`}
       </Button>
-      <Button size="sm" variant="ghost" onPress={() => setOpen(false)}>
+      <Button size="sm" variant="ghost" onPress={() => setOpen(false)} className="max-sm:h-10">
         Cancel
       </Button>
     </span>

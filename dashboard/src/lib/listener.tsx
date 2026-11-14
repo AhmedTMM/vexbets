@@ -369,31 +369,33 @@ function SettledBanner({ market, onClose }: { market: Market; onClose: () => voi
     // biome-ignore lint/a11y/noStaticElementInteractions: the backdrop is a click-to-close layer
     <div
       onClick={onClose}
-      className="fade-in fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/60 p-8 backdrop-blur-sm"
+      className="fade-in fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/60 p-4 backdrop-blur-sm sm:p-8"
     >
       <div
         role="alertdialog"
         aria-label={`Settled ${yes ? "YES" : "NO"}: ${market.question}`}
-        className={`toast-in relative w-full max-w-2xl rounded-[24px] border-2 bg-surface p-12 text-center shadow-2xl ${yes ? "border-yes" : "border-no"}`}
+        className={`toast-in relative max-h-full w-full max-w-2xl overflow-y-auto break-words rounded-[24px] border-2 bg-surface px-5 py-10 text-center shadow-2xl sm:p-12 ${yes ? "border-yes" : "border-no"}`}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-4 right-5 text-2xl text-muted transition-colors duration-150 hover:text-ink"
+          className="absolute top-4 right-5 text-2xl text-muted max-sm:top-2 max-sm:right-2 max-sm:flex max-sm:h-11 max-sm:w-11 max-sm:items-center max-sm:justify-center transition-colors duration-150 hover:text-ink"
         >
           ×
         </button>
-        <div className="text-6xl">{yes ? "🎉" : "⌛"}</div>
-        <div className="mt-5 font-semibold text-4xl tracking-tight">{market.question}</div>
+        <div className="text-5xl sm:text-6xl">{yes ? "🎉" : "⌛"}</div>
+        <div className="mt-5 font-semibold text-4xl tracking-tight max-sm:text-[26px] max-sm:leading-tight">
+          {market.question}
+        </div>
         <div className={`num mt-3 font-semibold text-2xl ${yes ? "text-yes" : "text-no"}`}>
           SETTLED {yes ? "YES" : "NO"}
         </div>
         {r?.decision.evidence[0] && (
-          <div className="mt-4 text-muted text-xl italic">“{r.decision.evidence[0].quote}”</div>
+          <div className="mt-4 text-lg text-muted italic sm:text-xl">“{r.decision.evidence[0].quote}”</div>
         )}
         {total > 0 && (
-          <div className="num mt-8 text-xl text-yes">
+          <div className="num mt-6 text-lg text-yes sm:mt-8 sm:text-xl">
             {credits(total)} paid to {r?.payouts.length} trader{r?.payouts.length === 1 ? "" : "s"}
           </div>
         )}

@@ -27,7 +27,7 @@ export function ListenBar() {
   return (
     <section
       aria-label="Listening"
-      className={`panel px-5 py-4 ${listening ? "border-yes/40 bg-yes/[0.04]" : ""}`}
+      className={`panel px-4 py-4 sm:px-5 ${listening ? "border-yes/40 bg-yes/[0.04]" : ""}`}
     >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <span className="flex items-center gap-2.5">
@@ -51,19 +51,26 @@ export function ListenBar() {
           </span>
         )}
 
-        <span className="ml-auto flex flex-wrap items-center gap-3">
+        {/* Phones: the controls take their own full-width row, Listen / Stop as a big button. */}
+        <span className="flex w-full flex-wrap items-center gap-3 sm:ml-auto sm:w-auto">
           {l.notifications !== "unsupported" && l.notifications !== "granted" && (
             <Button
               size="sm"
               variant="tertiary"
               onPress={() => void l.enableNotifications()}
               isDisabled={l.notifications === "denied"}
+              className="max-sm:h-10"
             >
               {l.notifications === "denied" ? "Notifications blocked" : "Notify me when markets settle"}
             </Button>
           )}
           {!listening && (
-            <Checkbox isSelected={consent} onChange={setConsent} variant="secondary">
+            <Checkbox
+              isSelected={consent}
+              onChange={setConsent}
+              variant="secondary"
+              className="max-sm:min-h-10 max-sm:w-full"
+            >
               <Checkbox.Content className="text-sm">
                 <Checkbox.Control>
                   <Checkbox.Indicator />
@@ -73,7 +80,12 @@ export function ListenBar() {
             </Checkbox>
           )}
           {listening ? (
-            <Button size="sm" variant="danger-soft" onPress={() => void l.stop()}>
+            <Button
+              size="sm"
+              variant="danger-soft"
+              onPress={() => void l.stop()}
+              className="max-sm:h-11 max-sm:w-full max-sm:text-base"
+            >
               Stop
             </Button>
           ) : (
@@ -82,6 +94,7 @@ export function ListenBar() {
               onPress={() => void onListen()}
               isDisabled={!consent}
               isPending={busy}
+              className="max-sm:h-11 max-sm:w-full max-sm:text-base"
               aria-label={
                 consent ? "Listen (double-tap the band first)" : "Listen (tick the consent box first)"
               }
@@ -118,7 +131,7 @@ export function ListenBar() {
               placeholder="Deepgram key (kept in this tab only)"
               value={l.manualKey}
               onChange={(e) => l.setManualKey(e.target.value)}
-              className="w-full max-w-sm text-[13px]"
+              className="w-full max-w-sm sm:text-[13px]"
             />
           )}
         </div>
@@ -137,7 +150,7 @@ export function ListenBar() {
           onChange={(e) => setTyped(e.target.value)}
           placeholder="No band? Type what was said and press Enter"
           aria-label="Test without the band: type what was said and press Enter"
-          className="w-full max-w-md text-[13px]"
+          className="w-full max-w-md sm:text-[13px]"
         />
       </form>
     </section>

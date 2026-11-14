@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, JetBrains_Mono, Schibsted_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
 import { Shell } from "@/components/Shell";
@@ -22,6 +22,13 @@ const mono = JetBrains_Mono({ variable: "--font-code", subsets: ["latin"], weigh
 export const metadata: Metadata = {
   title: "Vexbets",
   description: "Trade YES and NO shares on what your friends will say. A Vexo band listens and settles it.",
+};
+
+/** Phone-friendly: device width, no zoom-out, and the browser bar in the page colour. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0e0f11",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
