@@ -22,7 +22,7 @@
   --color-mock: #f5b544;
   --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
-  --font-display: var(--font-numbers), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -71,12 +71,23 @@ body {
 }
 
 /* Big numbers and headings: tall condensed figures. */
+/* Big numbers: Instrument Sans condensed, tabular. */
 .display {
   font-family: var(--font-display);
   font-weight: 700;
+  font-stretch: 75%;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
   line-height: 1;
+}
+
+/* Headlines (market questions, outcome names): tall and condensed. */
+.headline {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-stretch: 75%;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
 }
 
 .meta {
@@ -187,5 +198,80 @@ body {
     animation-iteration-count: 1 !important;
     /* biome-ignore lint/complexity/noImportantStyles: must override component transitions */
     transition-duration: 1ms !important;
+  }
+}
+
+/* Live captions: each new word fades up as it arrives. */
+@keyframes caption-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.caption-word {
+  display: inline-block;
+  animation: caption-in 180ms ease-out both;
+}
+.caption-fade {
+  animation: caption-in 240ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .caption-word,
+  .caption-fade {
+    animation: none;
+  }
+}
+
+/* Text tabs (top bar, portfolio): medium, muted; the active one in a soft mint-to-pink
+   gradient, as on the reference's highlighted category. */
+.tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--color-muted);
+  transition: color 150ms ease;
+}
+.tab:hover {
+  color: var(--color-ink);
+}
+.tab[aria-current="page"],
+.tab[aria-pressed="true"] {
+  font-weight: 600;
+  color: transparent;
+  background: linear-gradient(90deg, #6ff0c4 0%, #f2f4f5 55%, #ff8fa1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Sideways scrollers (tabs on a phone) without a visible scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Page width shared by the top bar, the listen row and the main column. */
+.page-x {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1440px;
+  padding-inline: 16px;
+}
+@media (min-width: 640px) {
+  .page-x {
+    padding-inline: 24px;
+  }
+}
+@media (min-width: 1024px) {
+  .page-x {
+    padding-inline: 32px;
   }
 }

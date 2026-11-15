@@ -1,23 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow_Condensed, JetBrains_Mono, Schibsted_Grotesk } from "next/font/google";
+import { Geist_Mono, Instrument_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 import { Shell } from "@/components/Shell";
 import "./globals.css";
 
-/** Interface text: a crisp grotesk with some character. */
-const sans = Schibsted_Grotesk({
+/** Everything: Instrument Sans, a crisp, slightly warm grotesk. Big prices use its tabular
+ *  figures (see .display), so the same family carries the text and the numbers. */
+const sans = Instrument_Sans({
   variable: "--font-ui",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-/** Big numbers and the wordmark: tall condensed figures, like a trading terminal. */
-const display = Barlow_Condensed({
-  variable: "--font-numbers",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  // Variable weight plus the width axis: .headline and .display use its condensed cut.
+  axes: ["wdth"],
 });
 /** Small details: band numbers, times, statuses. */
-const mono = JetBrains_Mono({ variable: "--font-code", subsets: ["latin"], weight: ["400", "500"] });
+const mono = Geist_Mono({ variable: "--font-code", subsets: ["latin"], weight: ["400", "500"] });
 
 export const metadata: Metadata = {
   title: "Vexbets",
@@ -34,7 +30,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="dark" data-theme="dark">
-      <body className={`${sans.variable} ${display.variable} ${mono.variable} antialiased`}>
+      <body className={`${sans.variable} ${mono.variable} antialiased`}>
         <Shell>{children}</Shell>
       </body>
     </html>

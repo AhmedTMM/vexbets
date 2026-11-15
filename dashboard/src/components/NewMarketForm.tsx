@@ -75,16 +75,16 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-5">
       <div className="grid gap-3">
         <TextField isRequired minLength={5} maxLength={200} value={question} onChange={setQuestion}>
           <Label className="label mb-1.5 block">Prediction</Label>
-          <Input placeholder={`Will anyone say "no cap"?`} className="w-full" />
+          <Input placeholder={`Will anyone say "no cap"?`} className="h-11 w-full text-base" />
           <Description className="meta mt-1.5 block">Put the exact words in quotes.</Description>
         </TextField>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-5">
         <div>
           <span className="label mb-1.5 block">Closes in</span>
           <ToggleButtonGroup
@@ -103,7 +103,7 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
                 key={d.minutes}
                 id={String(d.minutes)}
                 aria-label={d.title}
-                className="num flex-1 max-sm:px-2"
+                className="num h-10 flex-1 max-sm:px-2"
               >
                 {i > 0 && <ToggleButtonGroup.Separator />}
                 {d.label}
@@ -111,7 +111,7 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
             ))}
           </ToggleButtonGroup>
         </div>
-        <Button type="submit" size="lg" fullWidth isPending={busy}>
+        <Button type="submit" size="lg" fullWidth isPending={busy} className="rounded-full font-semibold">
           {busy ? "Opening…" : "Open market"}
         </Button>
       </div>
@@ -121,7 +121,7 @@ export function NewMarketForm({ onCreated }: { onCreated?: (m: Market) => void }
           {error}
         </p>
       )}
-      <p className="meta">
+      <p className="meta border-line border-t pt-4">
         settles YES the moment band #{TEAM_BAND} hears it · you put up {credits(DEPOSIT)} as the market maker
         and get back what's left when it settles
       </p>
