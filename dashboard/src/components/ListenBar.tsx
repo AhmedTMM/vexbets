@@ -25,18 +25,17 @@ export function ListenBar() {
   };
 
   return (
-    <section
-      aria-label="Listening"
-      className={`panel px-4 py-3 sm:px-5 ${listening ? "border-yes/40 bg-yes/[0.04]" : ""}`}
-    >
-      <div className="flex items-center gap-3">
+    <section aria-label="Listening" className="border-line border-b">
+      <div className="page-x flex min-h-12 items-center gap-2.5 py-1.5">
         <span
           aria-hidden="true"
-          className={`h-2.5 w-2.5 shrink-0 rounded-full ${listening ? "live-dot bg-yes" : "bg-line-strong"}`}
+          className={`h-2 w-2 shrink-0 rounded-full ${listening ? "live-dot bg-yes" : "bg-line-strong"}`}
         />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2">
-            <span className="font-semibold">{listening ? "Listening" : "Not listening"}</span>
+            <span className={`font-medium text-[13px] ${listening ? "text-yes" : "text-muted"}`}>
+              {listening ? "Listening" : "Not listening"}
+            </span>
             <span className="meta">band #{l.band}</span>
             {listening && l.level && (
               <span className="meta num hidden sm:inline">
@@ -52,16 +51,21 @@ export function ListenBar() {
           </div>
           {/* What it hears shows as big captions at the bottom (LiveCaptions); here only
               the status while connecting. */}
-          {l.status && !listening && <p className="mt-0.5 truncate text-muted text-sm">{l.status}</p>}
+          {l.status && !listening && <p className="truncate text-muted text-xs">{l.status}</p>}
         </div>
 
         {listening ? (
-          <Button size="sm" variant="danger-soft" onPress={() => void l.stop()}>
+          <Button
+            size="sm"
+            variant="danger-soft"
+            onPress={() => void l.stop()}
+            className="rounded-full px-4 max-sm:h-10"
+          >
             Stop
           </Button>
         ) : (
           <Modal>
-            <Button size="sm" isPending={busy}>
+            <Button size="sm" variant="tertiary" isPending={busy} className="rounded-full px-4 max-sm:h-10">
               {busy ? "Connecting…" : "Listen"}
             </Button>
             <Modal.Backdrop variant="blur">
@@ -126,7 +130,7 @@ export function ListenBar() {
       </div>
 
       {(l.problem || l.needKey) && (
-        <div className="mt-3 space-y-2">
+        <div className="page-x space-y-2 pb-3">
           {l.problem && <p className="text-no text-xs">{l.problem}</p>}
           {l.needKey && (
             <Input
