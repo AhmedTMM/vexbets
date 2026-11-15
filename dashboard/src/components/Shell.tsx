@@ -141,14 +141,14 @@ export function Shell({ children }: { children: ReactNode }) {
 }
 
 function SignIn({ problem }: { problem?: string }) {
-  const [email, setValue] = useState("");
+  const [name, setValue] = useState("");
   return (
     <div className="flex min-h-dvh items-center justify-center px-4 py-10">
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (email.includes("@")) {
-            setEmail(email);
+          if (name.trim()) {
+            setEmail(name.trim());
             refreshAll();
           }
         }}
@@ -164,9 +164,9 @@ function SignIn({ problem }: { problem?: string }) {
             A Vexo band listens and settles the market. New players get $100 of play money.
           </p>
         </div>
-        <TextField isRequired value={email} onChange={setValue} type="email">
-          <Label className="label mb-1.5 block">Email</Label>
-          <Input placeholder="you@example.com" className="h-11 w-full text-base" />
+        <TextField isRequired value={name} onChange={setValue}>
+          <Label className="label mb-1.5 block">Name</Label>
+          <Input placeholder="Your name" autoComplete="nickname" className="h-11 w-full text-base" />
         </TextField>
         {problem && <p className="text-no text-sm">{problem}</p>}
         <div className="space-y-3">

@@ -1,5 +1,5 @@
-// Who is using this tab. The backend's auth is `Authorization: Bearer <email>` (demo, play
-// money). Kept per tab in sessionStorage, so two tabs can be two friends.
+// Who is using this tab: just a name. The backend's auth is `Authorization: Bearer <name>`
+// (demo, play money; same name, same account). Kept per tab in sessionStorage, so two tabs can be two friends.
 
 const KEY = "vexbets.email";
 

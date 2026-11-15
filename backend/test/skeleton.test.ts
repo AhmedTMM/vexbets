@@ -31,7 +31,9 @@ describe("skeleton", () => {
     const req = (auth?: string) =>
       new Request("http://x", auth ? { headers: { authorization: auth } } : undefined);
     expect(emailFrom(req("Bearer Sam@Example.com "))).toBe("sam@example.com");
+    expect(emailFrom(req("Bearer Sam"))).toBe("sam");
+    expect(emailFrom(req(`Bearer ${encodeURIComponent("Zoë 🎉")}`))).toBe("zoë 🎉");
     expect(() => emailFrom(req())).toThrow(ContractError);
-    expect(() => emailFrom(req("Bearer not-an-email"))).toThrow(ContractError);
+    expect(() => emailFrom(req("Bearer   "))).toThrow(ContractError);
   });
 });

@@ -5,12 +5,19 @@ import type { Deps } from "../deps";
 
 export type UserRow = typeof users.$inferSelect;
 
-function baseHandle(email: string): string {
-  const local = (email.split("@")[0] ?? "")
+/** "Zoë 🎉" -> "zoe", "Sam Smith" -> "sam_smith", "sam@x.com" -> "sam". */
+function baseHandle(name: string): string {
+  const local = (name.split("@")[0] ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9_]/g, "_")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "")
     .slice(0, 19);
-  return local.length >= 2 ? local : `user_${local}`;
+  return local.length >= 2 ? local : `user_${local || "x"}`;
 }
 
 /**

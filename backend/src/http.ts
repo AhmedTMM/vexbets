@@ -60,18 +60,19 @@ function errorResponse(err: ContractError): Response {
   return json(err.toBody(), err.status);
 }
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+/**
+ * Who is calling: `Authorization: Bearer <name>`, URL-encoded (so any name fits in a
+ * header). No password, no format check: a demo with play money. Same name, same account.
+ */
 export function emailFrom(req: Request): string {
-  const auth = req.headers.get("authorization") ?? "";
-  const email = auth
-    .replace(/^Bearer\s+/i, "")
-    .trim()
-    .toLowerCase();
-  if (!EMAIL.test(email)) {
-    throw new ContractError("unauthorized", "send Authorization: Bearer <your email>");
-  }
-  return email;
+  const raw = (req.headers.get("authorization") ?? "").replace(/^Bearer(\s+|$)/i, "").trim();
+  let name = raw;
+  try {
+    name = decodeURIComponent(raw);
+  } catch {}
+  name = name.trim().toLowerCase().slice(0, 64);
+  if (!name) throw new ContractError("unauthorized", "send Authorization: Bearer <your name>");
+  return name;
 }
 
 export function createApi(deps: Deps, handlers: Handlers) {

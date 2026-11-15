@@ -531,7 +531,7 @@ export async function mockFetch(input: RequestInfo | URL, init?: RequestInit): P
     params[k] = decodeURIComponent(match[i + 1] ?? "");
   });
   const headers = new Headers(init?.headers);
-  const auth = (headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const auth = (headers.get("authorization") ?? "").replace(/^Bearer(\s+|$)/i, "").trim();
 
   // Feels like a network call, and lets the UI show its busy states.
   if (process.env.NODE_ENV !== "test") await new Promise((r) => setTimeout(r, 120));
@@ -545,9 +545,13 @@ export async function mockFetch(input: RequestInfo | URL, init?: RequestInit): P
       query: url.searchParams,
       body: init?.body ? JSON.parse(String(init.body)) : undefined,
       email: () => {
-        if (!auth.includes("@"))
-          throw new ContractError("unauthorized", "send Authorization: Bearer <your email>");
-        return auth.toLowerCase();
+        let name = auth;
+        try {
+          name = decodeURIComponent(auth);
+        } catch {}
+        name = name.trim().toLowerCase();
+        if (!name) throw new ContractError("unauthorized", "send Authorization: Bearer <your name>");
+        return name;
       },
     });
     judge(s);

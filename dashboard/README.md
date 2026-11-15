@@ -11,7 +11,7 @@ when their Vexo band hears it. Every backend call goes through `createClient` fr
 
 By default it runs on a **mock backend inside the browser** (`src/lib/mock/server.ts`): it
 answers the contract's endpoints from localStorage, so everything works with no backend.
-Sign in with any email. Each browser tab is its own user, so two tabs can be two friends.
+Sign in with any name. Each browser tab is its own user, so two tabs can be two friends.
 
 ### Against the real backend
 

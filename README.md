@@ -7,7 +7,7 @@ trade YES and NO shares. The band listens, and an AI judge settles the market th
 hears the answer, quoting the exact words as proof.
 
 **Live:** [vexbets-dashboard.vercel.app](https://vexbets-dashboard.vercel.app) · play money,
-sign in with any email · Chrome or Edge to connect the band
+sign in with any name · Chrome or Edge to connect the band
 
 ## How it works
 
