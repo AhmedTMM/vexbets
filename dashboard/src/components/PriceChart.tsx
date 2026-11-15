@@ -11,13 +11,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { clock } from "@/lib/format";
 import type { PricePoint } from "@/lib/market";
 import { resampleSeries } from "@/lib/series";
 
 const YES = "#00d394";
 const NO = "#ff4f6a";
 const AXIS = "#6b727a";
+const GRID = "#2f343a";
 
 interface DotProps {
   cx?: number;
@@ -25,116 +25,155 @@ interface DotProps {
   index?: number;
 }
 
-/**
- * The end of a line, Kalshi style: a dot on the last point with the side and its price
- * next to it. `nudge` moves the label up or down when YES and NO end close together.
- */
-function renderEnd(
-  { cx, cy, index }: DotProps,
-  lastIndex: number,
-  color: string,
-  label: string,
-  nudge: number,
-) {
-  const key = `end-${label}-${index}`;
-  if (index !== lastIndex || cx === undefined || cy === undefined) return <g key={key} />;
+/** A filled dot (with a soft halo) on the last point of a line. */
+function renderEnd({ cx, cy, index }: DotProps, lastIndex: number, color: string, key: string) {
+  const k = `end-${key}-${index}`;
+  if (index !== lastIndex || cx === undefined || cy === undefined) return <g key={k} />;
   return (
-    <g key={key}>
-      <circle cx={cx} cy={cy} r={8} fill={color} opacity={0.2} />
-      <circle cx={cx} cy={cy} r={4} fill={color} />
-      <text
-        x={cx + 12}
-        y={cy + nudge}
-        dy="0.35em"
-        fill={color}
-        fontFamily="var(--font-display)"
-        fontWeight={700}
-        fontSize={18}
-      >
-        {label}
-      </text>
+    <g key={k}>
+      <circle cx={cx} cy={cy} r={7} fill={color} opacity={0.18} />
+      <circle cx={cx} cy={cy} r={3.5} fill={color} />
     </g>
   );
 }
 
-/** YES and NO prices over time as two lines, each labelled at its latest price, in cents. */
+const MIN = 60_000;
+const HOUR = 60 * MIN;
+const DAY = 24 * HOUR;
+const STEPS = [
+  10_000,
+  15_000,
+  30_000,
+  MIN,
+  2 * MIN,
+  5 * MIN,
+  10 * MIN,
+  15 * MIN,
+  30 * MIN,
+  HOUR,
+  2 * HOUR,
+  3 * HOUR,
+  6 * HOUR,
+  12 * HOUR,
+  DAY,
+  2 * DAY,
+  7 * DAY,
+];
+
+/** Round-clock ticks (every 5m, 1h, 1d...) inside [from, to], about `want` of them. */
+function timeTicks(from: number, to: number, want: number): { ticks: number[]; step: number } {
+  const span = Math.max(to - from, 1);
+  const step = STEPS.find((s) => span / s <= want) ?? (STEPS.at(-1) as number);
+  // Align to local time so hour ticks land on the hour.
+  const offset = new Date(from).getTimezoneOffset() * MIN;
+  const ticks: number[] = [];
+  for (let t = Math.ceil((from - offset) / step) * step + offset; t <= to; t += step) ticks.push(t);
+  return { ticks, step };
+}
+
+/** "2:05pm", "2:05:30pm" for sub-minute steps, or "Nov 14" for day steps. */
+function tickLabel(t: number, step: number): string {
+  const d = new Date(t);
+  if (step >= DAY) return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const s = d
+    .toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      second: step < MIN ? "2-digit" : undefined,
+    })
+    .replace(/\s/g, "")
+    .toLowerCase();
+  return s;
+}
+
+interface TipProps {
+  active?: boolean;
+  label?: number;
+  payload?: { dataKey?: string; value?: number }[];
+}
+
+function Tip({ active, label, payload }: TipProps) {
+  if (!active || !payload?.length || label === undefined) return null;
+  const v = (k: string) => Math.round(payload.find((p) => p.dataKey === k)?.value ?? 0);
+  const d = new Date(label);
+  return (
+    <div className="rounded-lg bg-raised/95 px-2.5 py-1.5 text-xs shadow-lg">
+      <div className="meta text-[11px]!">
+        {d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+      </div>
+      <div className="num mt-0.5 flex gap-3 font-semibold">
+        <span className="text-yes">Yes {v("yes")}%</span>
+        <span className="text-no">No {v("no")}%</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * YES and NO chance over time as two thin lines, a dotted grid every 25%, the % axis on
+ * the right and a filled dot where each line ends. No box: it sits on the page.
+ */
 export function PriceChart({
   points,
-  height = 260,
-  timeFormat = clock,
+  height = 280,
 }: {
   points: PricePoint[];
   /** Pixels, or "100%" to fill a parent with a (responsive) height. */
   height?: number | `${number}%`;
-  timeFormat?: (t: number) => string;
 }) {
   // Drawn on an even grid so a few trades still make a full, hoverable line.
   const dense = resampleSeries(points, 120);
-  const last = points.length - 1;
-  const yes = Math.round(points[last]?.yes ?? 50);
-  const no = Math.round(points[last]?.no ?? 50);
-  // Keep the two end labels from overlapping when the prices are close.
-  const gap = Math.abs(yes - no);
-  // The nudge is in pixels; a "100%" chart is about as tall as the default one.
-  const px = typeof height === "number" ? height : 260;
-  const push = gap < 12 ? Math.ceil(((12 - gap) / 100) * px * 0.5) + 2 : 0;
-  const yesNudge = yes >= no ? -push : push;
-  const noNudge = yes >= no ? push : -push;
+  const last = dense.length - 1;
+  const from = dense[0]?.t ?? 0;
+  const to = dense[last]?.t ?? 0;
+  const { ticks, step } = timeTicks(from, to, 5);
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={dense} margin={{ top: 12, right: 92, bottom: 0, left: -18 }}>
-        <CartesianGrid stroke="#2a2f35" strokeDasharray="2 4" vertical={false} />
+      <LineChart data={dense} margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
+        <CartesianGrid stroke={GRID} strokeDasharray="1 5" strokeLinecap="round" vertical={false} />
         <XAxis
           dataKey="t"
           type="number"
-          domain={["dataMin", "dataMax"]}
-          tickFormatter={(v) => timeFormat(v)}
-          stroke={AXIS}
-          tickLine={false}
-          axisLine={{ stroke: "#25292e" }}
-          fontSize={11}
-          fontFamily="var(--font-mono)"
-          minTickGap={40}
-        />
-        <YAxis
-          domain={[0, 100]}
-          ticks={[0, 25, 50, 75, 100]}
-          tickFormatter={(v) => `${v}¢`}
+          domain={[from, to]}
+          ticks={ticks}
+          tickFormatter={(v) => tickLabel(v as number, step)}
           stroke={AXIS}
           tickLine={false}
           axisLine={false}
+          tickMargin={10}
           fontSize={11}
-          fontFamily="var(--font-mono)"
+          minTickGap={24}
         />
-        <Tooltip
-          contentStyle={{
-            background: "#1d2024",
-            border: "1px solid #343a41",
-            color: "#f2f4f5",
-            borderRadius: 10,
-            fontFamily: "var(--font-mono)",
-            fontSize: 12,
-          }}
-          labelFormatter={(v) => timeFormat(v as number)}
-          formatter={(v, name) => [`${Math.round(v as number)}¢`, String(name).toUpperCase()]}
+        <YAxis
+          orientation="right"
+          domain={[0, 100]}
+          ticks={[0, 25, 50, 75, 100]}
+          tickFormatter={(v) => `${v}%`}
+          stroke={AXIS}
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          width={44}
+          fontSize={11}
         />
+        <Tooltip content={<Tip />} cursor={{ stroke: "#4a5058", strokeWidth: 1 }} isAnimationActive={false} />
         <Line
           type="monotone"
           dataKey="no"
           stroke={NO}
-          strokeWidth={2.5}
-          dot={(p: DotProps) => renderEnd(p, last, NO, `NO ${no}¢`, noNudge)}
-          activeDot={{ r: 4, fill: NO, stroke: "none" }}
+          strokeWidth={2}
+          dot={(p: DotProps) => renderEnd(p, last, NO, "no")}
+          activeDot={{ r: 4, fill: NO, stroke: "#0e0f11", strokeWidth: 2 }}
           isAnimationActive={false}
         />
         <Line
           type="monotone"
           dataKey="yes"
           stroke={YES}
-          strokeWidth={2.5}
-          dot={(p: DotProps) => renderEnd(p, last, YES, `YES ${yes}¢`, yesNudge)}
-          activeDot={{ r: 4, fill: YES, stroke: "none" }}
+          strokeWidth={2}
+          dot={(p: DotProps) => renderEnd(p, last, YES, "yes")}
+          activeDot={{ r: 4, fill: YES, stroke: "#0e0f11", strokeWidth: 2 }}
           isAnimationActive={false}
         />
       </LineChart>

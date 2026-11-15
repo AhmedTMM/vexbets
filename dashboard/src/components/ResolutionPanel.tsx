@@ -36,35 +36,40 @@ export function ResolutionPanel({ market, yn, meId }: { market: Market; yn: YesN
   const quoted = new Set(r.decision.evidence.map((e) => e.segmentId));
 
   return (
-    <div
-      className={`rounded-[14px] border p-4 ${yes ? "border-yes/30 bg-yes/[0.07]" : "border-no/30 bg-no/[0.07]"}`}
-    >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div className="text-lg font-semibold">
-          Settled {yes ? "YES" : "NO"}{" "}
-          <span className="text-sm font-normal text-muted">
-            at {clock(r.resolvedAt)} ·{" "}
-            {r.via === "evidence" ? "the judge found proof" : "nothing heard before close"}
-          </span>
-        </div>
-        {mine && <div className="num text-yes">You were paid {credits(mine.credits)}</div>}
+    <section aria-label="Resolution" className="border-line border-t pt-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="headline text-[26px]">
+          Settled <span className={yes ? "text-yes" : "text-no"}>{yes ? "YES" : "NO"}</span>
+        </h2>
+        {mine && <div className="num font-semibold text-yes">You were paid {credits(mine.credits)}</div>}
       </div>
-      <p className="mt-2 text-sm text-ink">{r.decision.rationale}</p>
+      <p className="meta mt-1">
+        {clock(r.resolvedAt)} ·{" "}
+        {r.via === "evidence" ? "the judge found proof" : "nothing heard before close"} · {r.decision.model} ·
+        confidence {Math.round(r.decision.confidence * 100)}%
+      </p>
+      <p className="mt-3 text-[15px] text-ink leading-relaxed">{r.decision.rationale}</p>
       {r.decision.evidence.length > 0 && (
-        <ul className="mt-3 space-y-1">
+        <ul className="mt-3 space-y-1.5">
           {r.decision.evidence.map((e) => (
-            <li key={`${e.segmentId}-${e.quote}`} className="border-l-2 border-mock/60 pl-3 text-sm italic">
+            <li
+              key={`${e.segmentId}-${e.quote}`}
+              className="border-yes/60 border-l-2 pl-3 text-[15px] text-ink italic"
+            >
               “{e.quote}”
             </li>
           ))}
         </ul>
       )}
-      <div className="mt-2 text-xs text-muted">
-        Judge: {r.decision.model} · confidence {Math.round(r.decision.confidence * 100)}%
-      </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Button size="sm" variant="outline" isPending={busy} onPress={() => void verify()}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="rounded-full"
+          isPending={busy}
+          onPress={() => void verify()}
+        >
           {busy ? "Checking…" : "Verify proof"}
         </Button>
         {check?.ok && <span className="text-sm text-yes">✓ Transcript chain and quotes check out</span>}
@@ -73,17 +78,20 @@ export function ResolutionPanel({ market, yn, meId }: { market: Market; yn: YesN
       </div>
 
       {segments && segments.length > 0 && (
-        <div className="mt-3 max-h-56 space-y-1 overflow-y-auto rounded-lg bg-bg p-3 text-sm">
+        <div className="scroll-y mt-4 max-h-56 space-y-1 border-line border-y py-3 text-sm">
           {[...segments]
             .sort((a, b) => a.startMs - b.startMs)
             .map((s) => (
-              <p key={s.id} className={quoted.has(s.id) ? "rounded bg-mock/15 px-1 text-ink" : "text-muted"}>
-                <span className="mr-2 num text-xs text-muted">{clock(s.startMs)}</span>
+              <p
+                key={s.id}
+                className={quoted.has(s.id) ? "rounded bg-yes/10 px-1 text-ink" : "px-1 text-muted"}
+              >
+                <span className="num mr-2 text-muted text-xs">{clock(s.startMs)}</span>
                 {s.text}
               </p>
             ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
