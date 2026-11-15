@@ -1,10 +1,9 @@
 "use client";
 
-import { ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import type { Market, Position, Trade } from "@vexbets/contract";
 import Link from "next/link";
 import { useState } from "react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "@/lib/api";
 import { cents, clock, credits, signedCredits } from "@/lib/format";
 import { useMe, usePoll } from "@/lib/hooks";
@@ -102,46 +101,42 @@ export function PortfolioPanel() {
   ];
 
   return (
-    <div className="space-y-6">
-      <section className="panel p-4 sm:p-6">
+    <div className="space-y-12 sm:space-y-14">
+      <section aria-label="Total balance">
         <div className="label">Total balance</div>
-        <div className="display mt-2 text-[56px] sm:text-[80px]">{credits(total)}</div>
-        <div className={`display mt-2 text-[22px] sm:text-[26px] ${change >= 0 ? "text-yes" : "text-no"}`}>
-          {signedCredits(change)} ({change >= 0 ? "+" : "−"}
-          {Math.abs(pct).toFixed(1)}%)
+        <div className="display mt-3 text-[56px] sm:text-[84px]">{credits(total)}</div>
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className={`display text-[20px] sm:text-[24px] ${change >= 0 ? "text-yes" : "text-no"}`}>
+            {change >= 0 ? "▲" : "▼"} {credits(Math.abs(change))} ({Math.abs(pct).toFixed(1)}%)
+          </span>
+          <span className="meta">since you joined</span>
         </div>
-        <div className="meta mt-1">
+        <div className="meta mt-1.5">
           cash {credits(me.balance)} · in positions {credits(openValue)}
           {inDeposits > 0 && ` · deposits in markets you opened ${credits(inDeposits)}`}
         </div>
-        <div className="mt-6">
+        <div className="mt-8">
           <ValueChart points={series} up={change >= 0} />
         </div>
       </section>
 
-      <section className="panel overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-line border-b px-4 py-4 sm:px-5">
-          <h2 className="font-semibold text-xl">Predictions</h2>
-          <ToggleButtonGroup
-            aria-label="Show"
-            size="sm"
-            selectionMode="single"
-            disallowEmptySelection
-            selectedKeys={[tab]}
-            onSelectionChange={(keys) => {
-              const k = [...keys][0];
-              const t = tabs.find((x) => x.id === k);
-              if (t) setTab(t.id);
-            }}
-            className="max-sm:w-full"
-          >
-            {tabs.map((t, i) => (
-              <ToggleButton key={t.id} id={t.id} className="max-sm:h-10 max-sm:flex-1 max-sm:px-1.5">
-                {i > 0 && <ToggleButtonGroup.Separator />}
-                {t.label} <span className="num">({t.n})</span>
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
+      <section aria-labelledby="predictions-title">
+        <h2 id="predictions-title" className="headline text-[28px] sm:text-[32px]">
+          Predictions
+        </h2>
+        <div className="no-scrollbar mt-3 flex gap-6 overflow-x-auto border-line border-b sm:gap-7">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              aria-pressed={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className="tab h-11 gap-1.5"
+            >
+              {t.label}
+              <span className="num text-[13px]">{t.n}</span>
+            </button>
+          ))}
         </div>
 
         {/* Wide tables scroll sideways inside here, never the page. */}
@@ -157,10 +152,10 @@ export function PortfolioPanel() {
 
 // ---------------------------------------------------------------- tables
 
-const th = "label whitespace-nowrap px-4 py-3 text-left font-semibold";
+const th = "label whitespace-nowrap px-3 py-3 text-left font-semibold first:pl-0 last:pr-0";
 const thR = `${th} text-right`;
-const td = "px-4 py-3";
-const tdR = "num px-4 py-3 text-right";
+const td = "px-3 py-3.5 first:pl-0 last:pr-0";
+const tdR = "num px-3 py-3.5 text-right first:pl-0 last:pr-0";
 
 function SidePill({ side }: { side: "YES" | "NO" | string }) {
   const yes = side === "YES";
@@ -176,7 +171,7 @@ function SidePill({ side }: { side: "YES" | "NO" | string }) {
 function Empty({ cols, children }: { cols: number; children: React.ReactNode }) {
   return (
     <tr>
-      <td colSpan={cols} className="px-4 py-8 text-center text-muted">
+      <td colSpan={cols} className="py-10 text-center text-muted">
         {children}
       </td>
     </tr>
@@ -233,7 +228,7 @@ function PositionsTable({ rows }: { rows: Row[] }) {
           return (
             <tr
               key={`${r.m.id}-${r.p.outcomeId}`}
-              className="transition-colors duration-150 hover:bg-raised/60"
+              className="transition-colors duration-150 hover:bg-surface/60"
             >
               <MarketCell m={r.m} />
               <td className={td}>
@@ -284,7 +279,7 @@ function HistoryTable({
         {rows.map((r) => {
           const pl = r.payout - r.paid;
           return (
-            <tr key={r.m.id} className="transition-colors duration-150 hover:bg-raised/60">
+            <tr key={r.m.id} className="transition-colors duration-150 hover:bg-surface/60">
               <MarketCell m={r.m} />
               <td className={td}>
                 <span className="flex gap-1">
@@ -331,7 +326,7 @@ function FillsTable({ trades, byId }: { trades: Trade[]; byId: Map<string, Marke
           const m = byId.get(t.marketId);
           const yn = m && yesNo(m);
           return (
-            <tr key={t.id} className="transition-colors duration-150 hover:bg-raised/60">
+            <tr key={t.id} className="transition-colors duration-150 hover:bg-surface/60">
               <td className={`${td} num whitespace-nowrap text-muted`}>{clock(t.createdAt)}</td>
               {m ? <MarketCell m={m} /> : <td className={td}>?</td>}
               <td className={td}>{t.side === "buy" ? "Buy" : "Sell"}</td>
@@ -353,18 +348,14 @@ function FillsTable({ trades, byId }: { trades: Trade[]; byId: Map<string, Marke
 
 function ValueChart({ points, up }: { points: ValuePoint[]; up: boolean }) {
   const color = up ? "#00d394" : "#ff4f6a";
+  const data = resampleSeries(points, 120);
   const lo = Math.min(...points.map((p) => p.v));
   const hi = Math.max(...points.map((p) => p.v));
   const pad = Math.max(50, (hi - lo) * 0.25);
+  const last = data.length - 1;
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <AreaChart data={resampleSeries(points, 120)} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
-        <defs>
-          <linearGradient id="value-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.4} />
-            <stop offset="100%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
+    <ResponsiveContainer width="100%" height={240}>
+      <LineChart data={data} margin={{ top: 8, right: 0, bottom: 0, left: 0 }}>
         <CartesianGrid stroke="#2a2f35" strokeDasharray="2 4" vertical={false} />
         <XAxis
           dataKey="t"
@@ -373,12 +364,23 @@ function ValueChart({ points, up }: { points: ValuePoint[]; up: boolean }) {
           tickFormatter={(v) => clock(v).slice(0, 5)}
           stroke="#6b727a"
           tickLine={false}
-          axisLine={false}
+          axisLine={{ stroke: "#25292e" }}
           fontSize={11}
           fontFamily="var(--font-mono)"
           minTickGap={60}
         />
-        <YAxis domain={[lo - pad, hi + pad]} hide />
+        <YAxis
+          orientation="right"
+          domain={[lo - pad, hi + pad]}
+          tickCount={4}
+          tickFormatter={(v) => credits(v as number).replace(/\.\d\d$/, "")}
+          stroke="#6b727a"
+          tickLine={false}
+          axisLine={false}
+          fontSize={11}
+          fontFamily="var(--font-mono)"
+          width={56}
+        />
         <Tooltip
           contentStyle={{
             background: "#1d2024",
@@ -391,15 +393,22 @@ function ValueChart({ points, up }: { points: ValuePoint[]; up: boolean }) {
           labelFormatter={(v) => clock(v as number)}
           formatter={(v) => [credits(v as number), "Balance"]}
         />
-        <Area
+        <Line
           type="monotone"
           dataKey="v"
           stroke={color}
-          strokeWidth={2.5}
-          fill="url(#value-fill)"
+          strokeWidth={1.75}
+          dot={(p: { cx?: number; cy?: number; index?: number }) =>
+            p.index === last && p.cx !== undefined && p.cy !== undefined ? (
+              <circle key="end" cx={p.cx} cy={p.cy} r={4} fill={color} stroke="#0e0f11" strokeWidth={2} />
+            ) : (
+              <g key={p.index} />
+            )
+          }
+          activeDot={{ r: 4, fill: color, stroke: "none" }}
           isAnimationActive={false}
         />
-      </AreaChart>
+      </LineChart>
     </ResponsiveContainer>
   );
 }
