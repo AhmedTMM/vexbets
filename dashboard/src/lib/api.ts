@@ -12,7 +12,7 @@ export const api: Client = createClient({
   fetch: API_MODE === "mock" ? mockFetch : undefined,
   headers: (): Record<string, string> => {
     const email = getEmail();
-    return email ? { authorization: `Bearer ${email}` } : {};
+    return email ? { authorization: `Bearer ${encodeURIComponent(email)}` } : {};
   },
 });
 
