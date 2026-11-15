@@ -5,9 +5,12 @@ import { useState } from "react";
 import { credits, errorText } from "@/lib/format";
 import { placeTrade } from "@/lib/trade";
 
+const pill =
+  "h-10 rounded-full px-4 text-xs font-semibold uppercase tracking-[0.12em] sm:h-9 max-sm:min-w-10";
+
 /**
- * Sell from a holding: click Sell, choose how many (all by default), confirm.
- * Used in "Your shares" under the buy ticket and in the portfolio.
+ * Sell from a holding: press Sell, choose how many (all by default), confirm.
+ * Used in the ticket's SELL tab and in the portfolio.
  */
 export function SellButton({
   marketId,
@@ -15,12 +18,15 @@ export function SellButton({
   held,
   side,
   disabled = false,
+  onDone,
 }: {
   marketId: string;
   outcomeId: string;
   held: number;
   side: "YES" | "NO";
   disabled?: boolean;
+  /** Also told the result, for a parent that outlives this button (selling all removes the row). */
+  onDone?: (result: { ok: boolean; text: string }) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [n, setN] = useState(String(held));
@@ -35,7 +41,7 @@ export function SellButton({
           size="sm"
           variant="outline"
           isDisabled={disabled || held < 1}
-          className="max-sm:h-10"
+          className={`${pill} border-line-strong text-ink`}
           onPress={() => {
             setN(String(held));
             setMsg(null);
@@ -52,16 +58,20 @@ export function SellButton({
   const valid = count >= 1 && count <= held;
   const sell = async () => {
     setBusy(true);
+    let result: { ok: boolean; text: string };
     try {
       const t = await placeTrade(marketId, outcomeId, "sell", count);
-      setMsg({ ok: true, text: `Sold ${t.shares} for ${credits(t.credits)}` });
-      setOpen(false);
+      result = {
+        ok: true,
+        text: `Sold ${t.shares} ${side === "YES" ? "Yes" : "No"} for ${credits(t.credits)}`,
+      };
     } catch (e) {
-      setMsg({ ok: false, text: errorText(e) });
-      setOpen(false);
-    } finally {
-      setBusy(false);
+      result = { ok: false, text: errorText(e) };
     }
+    setBusy(false);
+    setOpen(false);
+    if (onDone) onDone(result);
+    else setMsg(result);
   };
 
   return (
@@ -71,7 +81,7 @@ export function SellButton({
         aria-label={`Shares of ${side} to sell (you hold ${held})`}
         value={n}
         onChange={(e) => setN(e.target.value.replace(/\D/g, "").slice(0, 6))}
-        className="num h-10 w-16 text-right text-base sm:h-8 sm:text-xs"
+        className="num h-10 w-16 rounded-full border border-line-strong bg-transparent px-3 text-right text-base shadow-none sm:h-9 sm:text-sm"
       />
       <Button
         size="sm"
@@ -79,12 +89,18 @@ export function SellButton({
         isDisabled={!valid}
         isPending={busy}
         onPress={() => void sell()}
-        className="max-sm:h-10"
+        className={pill}
       >
         {`Sell ${valid ? count : ""}`}
       </Button>
-      <Button size="sm" variant="ghost" onPress={() => setOpen(false)} className="max-sm:h-10">
-        Cancel
+      <Button
+        size="sm"
+        variant="ghost"
+        aria-label="Cancel"
+        onPress={() => setOpen(false)}
+        className={`${pill} px-3 text-muted`}
+      >
+        ✕
       </Button>
     </span>
   );
