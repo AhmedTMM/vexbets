@@ -33,7 +33,7 @@ export default function MarketPage() {
       return { market, trades, positions: positions.filter((p) => p.marketId === id) };
     },
     id,
-    1500,
+    1000,
   );
 
   if (error && !data) {

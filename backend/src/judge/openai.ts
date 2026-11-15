@@ -33,7 +33,8 @@ export function openaiJudge(opts: {
 }): Judge {
   const client = opts.client ?? new OpenAI({ apiKey: opts.apiKey });
   const model = opts.model ?? DEFAULT_JUDGE_MODEL;
-  const effort = opts.effort ?? "low";
+  // "none": measured ~0.2 s faster than "low" with the same verdicts (scripts/time-judge.ts).
+  const effort = opts.effort ?? "none";
   return {
     model,
     async judge(input) {

@@ -20,7 +20,7 @@ let server: Promise<{ api: Api; deps: Deps; database: Database }> | undefined;
 
 /**
  * JUDGE=openai (default when OPENAI_API_KEY is set) or JUDGE=fake (keyword judge, free).
- * OPENAI_JUDGE_MODEL defaults to gpt-6.1-terra; OPENAI_REASONING_EFFORT defaults to low.
+ * OPENAI_JUDGE_MODEL defaults to gpt-6.1-terra; OPENAI_REASONING_EFFORT defaults to none (fastest).
  */
 function pickJudge(): Judge {
   const apiKey = process.env.OPENAI_API_KEY;

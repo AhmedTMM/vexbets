@@ -336,7 +336,7 @@ function LiveMarket({ marketId }: { marketId: string }) {
       return { market, trades, positions: positions.filter((p) => p.marketId === marketId) };
     },
     marketId,
-    1500,
+    1000,
   );
 
   if (error && !data) return <section className="p-6 text-muted">{error.message}</section>;

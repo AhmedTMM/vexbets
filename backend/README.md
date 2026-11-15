@@ -71,7 +71,7 @@ prove, with credits conserved.
   it prices after the one before it. Idempotent on `idempotencyKey`.
 - **Ingest**: segments are hash-chained exactly as `hashSegment` in the contract computes.
 - **Judging**: OpenAI Responses API, strict structured output shaped like the contract's
-  `JudgeOutput`, reasoning effort `low`. Every ingested line triggers judging of that band's
+  `JudgeOutput`, reasoning effort `none` (fastest; same verdicts as `low` in our timing runs). Every ingested line triggers judging of that band's
   open markets, after the response (Next `after()`), sending everything heard in the window
   as context. One judge call per market at a time: a line that arrives meanwhile marks the
   market `judge_pending` and the running job goes again, so no line is ever skipped. Quotes must appear in the stored
@@ -91,7 +91,7 @@ prove, with credits conserved.
    | `DATABASE_URL`            | Neon connection string (set by step 2)                                       |
    | `OPENAI_API_KEY`          | The judge (and STT when there is no Deepgram key). Without it: keyword judge |
    | `OPENAI_JUDGE_MODEL`      | Optional. `gpt-6.1-terra` (default); `gpt-6-luna` ~10x cheaper               |
-   | `OPENAI_REASONING_EFFORT` | Optional. `none`, `low` (default), `medium`, `high`                          |
+   | `OPENAI_REASONING_EFFORT` | Optional. `none` (default, fastest), `low`, `medium`, `high`                 |
    | `OPENAI_STT_MODEL`        | Optional. `gpt-live-transcribe` (default)                                    |
    | `DEEPGRAM_API_KEY`        | Live STT, preferred when set: short-lived Deepgram tokens for the Listen bar |
    | `STT_PROVIDER`            | Optional override: `deepgram`, `openai` or `fake`                            |
