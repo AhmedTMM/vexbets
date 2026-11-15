@@ -241,6 +241,17 @@ body {
 .tab:hover {
   color: var(--color-ink);
 }
+/* The global focus outline got clipped by the scrolling tab row into two side bars.
+   Mouse clicks show nothing; keyboard focus gets an underline instead. */
+.tab:focus {
+  outline: none;
+}
+.tab:focus-visible {
+  outline: none;
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-color: var(--color-yes);
+}
 .tab[aria-current="page"],
 .tab[aria-pressed="true"] {
   font-weight: 600;

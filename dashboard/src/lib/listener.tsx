@@ -110,7 +110,7 @@ export function ListenerProvider({ children }: { children: ReactNode }) {
   const { data: markets } = usePoll(
     async () => (await api("listMarkets", { query: { limit: 100 } })).markets,
     "all-markets",
-    1500,
+    1000,
   );
   const [banner, dismissBanner] = useResolvedBanner(markets);
 

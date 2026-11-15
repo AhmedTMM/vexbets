@@ -84,7 +84,7 @@ describe("OpenAI judge (offline)", () => {
       text: { format: { type: string; strict: boolean } };
     };
     expect(req.model).toBe("gpt-6.1-terra");
-    expect(req.reasoning).toEqual({ effort: "low" });
+    expect(req.reasoning).toEqual({ effort: "none" });
     expect(req.text.format).toMatchObject({ type: "json_schema", strict: true });
     expect(JSON.stringify(req.text.format)).not.toMatch(/minLength|maxLength/);
     expect(JSON.stringify(req.text.format)).toContain('"enum":["UNDETERMINED","Yes","No"]');

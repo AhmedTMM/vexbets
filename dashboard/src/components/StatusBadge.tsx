@@ -8,7 +8,8 @@ import { yesNo } from "@/lib/market";
 type Tone = "live" | "yes" | "no" | "muted";
 
 const TONES: Record<Tone, { pill: string; dot: string }> = {
-  live: { pill: "border-no/35 text-ink", dot: "live-dot bg-no" },
+  // No red pulsing dot: it read like a "recording" light.
+  live: { pill: "border-line-strong text-ink", dot: "" },
   yes: { pill: "border-yes/35 bg-yes/10 text-yes", dot: "bg-yes" },
   no: { pill: "border-no/35 bg-no/10 text-no", dot: "bg-no" },
   muted: { pill: "border-line-strong text-muted", dot: "bg-muted" },
@@ -22,7 +23,7 @@ function Pill({ tone, children, big }: { tone: Tone; children: ReactNode; big?: 
         big ? "h-8 px-3 text-[13px]" : "h-6 px-2.5 text-xs"
       }`}
     >
-      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.dot}`} aria-hidden="true" />
+      {t.dot && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.dot}`} aria-hidden="true" />}
       {children}
     </span>
   );
