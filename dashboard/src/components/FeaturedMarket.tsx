@@ -1,6 +1,6 @@
 "use client";
 
-import { lmsr, type Market, type Position, type Trade } from "@vexbets/contract";
+import type { Market, Position, Trade } from "@vexbets/contract";
 import Link from "next/link";
 import { type ReactNode, useRef, useState } from "react";
 import { Flash } from "@/components/Flash";
@@ -51,19 +51,6 @@ function ago(iso: string, now: number): string {
 }
 
 /** Price in cents of buying one share now (what the button costs), or the price if it can't be quoted. */
-function buyCents(m: Market, index: number, fallback: number): number {
-  try {
-    return lmsr.quoteTrade(
-      m.outcomes.map((o) => o.shares),
-      m.liquidityB,
-      index,
-      "buy",
-      1,
-    ).credits;
-  } catch {
-    return fallback;
-  }
-}
 
 function Sparkle() {
   return (
@@ -144,8 +131,9 @@ function ChanceTable({
   onPick: (side: Side) => void;
 }) {
   const yes = yesCents(m, yn);
-  const yesBuy = open ? buyCents(m, yn.yesIndex, Math.round(yes)) : Math.round(yes);
-  const noBuy = open ? buyCents(m, yn.noIndex, Math.round(100 - yes)) : Math.round(100 - yes);
+  // The current price of each side, the same figures the ticket shows.
+  const yesBuy = Math.round(yes);
+  const noBuy = 100 - yesBuy;
   const label = yn.yes.label.toLowerCase() === "yes" ? "Heard" : yn.yes.label;
   const pill =
     "h-12 w-full rounded-full border font-semibold text-[15px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 @min-[620px]:w-[210px]";
